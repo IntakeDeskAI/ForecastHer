@@ -5,10 +5,10 @@
 // --- Supabase Client ---
 const SUPABASE_URL = 'https://rqdzxptzbrfnpmlaiijv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxZHp4cHR6YnJmbnBtbGFpaWp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NDM1NjMsImV4cCI6MjA4NzMxOTU2M30.deihTlAvI1vXyfRqPhJ6i5MQdnKadgM5p7V3uwasSog';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function submitToWaitlist(email, predictionIdea, source) {
-  const { error } = await supabase
+  const { error } = await sb
     .from('waitlist')
     .insert([{
       email: email.trim().toLowerCase(),
