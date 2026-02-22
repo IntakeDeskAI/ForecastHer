@@ -292,11 +292,17 @@ h1, h2, h3 {
 
 .hero-form-note {
   font-size: 0.82rem;
-  color: #9ca3af;
+  color: #6b7280;
   margin-top: 12px;
-  max-width: 480px;
+  max-width: 520px;
   margin-left: auto;
   margin-right: auto;
+  line-height: 1.5;
+}
+
+.hero-form-note strong {
+  color: #7c3aed;
+  font-weight: 600;
 }
 
 /* Social Proof */
