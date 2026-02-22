@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ForecastHer — The Prediction Marketplace Built for Women</title>
-  <meta name="description" content="Join the first prediction marketplace built for women's worlds — cycles, wellness, trends, and triumphs. Crowd wisdom meets empowerment.">
+  <title>ForecastHer – Women's Prediction Marketplace | Waitlist Now</title>
+  <meta name="description" content="The first prediction marketplace built for women. Trade on women's health predictions, femtech forecasts, menopause trends 2026, fertility breakthroughs, and more. Join the waitlist.">
+  <meta name="keywords" content="women's prediction marketplace, femtech forecasts, menopause trends 2026, women's health predictions, fertility predictions, prediction market for women">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
@@ -48,7 +49,7 @@
           <div class="avatar" style="background: #a78bfa;">K</div>
           <div class="avatar" style="background: #4fd1c5;">R</div>
         </div>
-        <span class="social-proof-text">Join <strong>500+</strong> women on the waitlist</span>
+        <span class="social-proof-text">Join <strong><span id="waitlist-count-hero">500+</span></strong> women on the waitlist</span>
       </div>
     </div>
     <div class="scroll-hint">
@@ -94,7 +95,10 @@
       <p class="section-sub">Preview prediction markets you'll be able to trade on. Real questions. Real odds. Real impact.</p>
       <div class="markets-grid">
         <div class="market-card">
-          <div class="market-tag tag-health">Women's Health</div>
+          <div class="market-card-header">
+            <div class="market-icon">💊</div>
+            <div class="market-tag tag-health">Women's Health</div>
+          </div>
           <h3>Will a new non-hormonal menopause treatment receive full FDA approval in 2026?</h3>
           <div class="market-odds">
             <div class="odds-bar">
@@ -112,7 +116,10 @@
         </div>
 
         <div class="market-card">
-          <div class="market-tag tag-fertility">Fertility</div>
+          <div class="market-card-header">
+            <div class="market-icon">🍼</div>
+            <div class="market-tag tag-fertility">Fertility</div>
+          </div>
           <h3>Will egg freezing costs drop below $8,000 average in the US by end of 2026?</h3>
           <div class="market-odds">
             <div class="odds-bar">
@@ -130,7 +137,10 @@
         </div>
 
         <div class="market-card">
-          <div class="market-tag tag-culture">Culture</div>
+          <div class="market-card-header">
+            <div class="market-icon">💄</div>
+            <div class="market-tag tag-culture">Culture</div>
+          </div>
           <h3>Will a major celebrity publicly share a menopause or perimenopause journey that goes viral in 2026?</h3>
           <div class="market-odds">
             <div class="odds-bar">
@@ -148,7 +158,10 @@
         </div>
 
         <div class="market-card">
-          <div class="market-tag tag-tech">FemTech</div>
+          <div class="market-card-header">
+            <div class="market-icon">🔬</div>
+            <div class="market-tag tag-tech">FemTech</div>
+          </div>
           <h3>Will AI-powered at-home diagnostics for endometriosis achieve clinical-grade accuracy in 2026?</h3>
           <div class="market-odds">
             <div class="odds-bar">
@@ -166,7 +179,10 @@
         </div>
 
         <div class="market-card">
-          <div class="market-tag tag-health">Wellness</div>
+          <div class="market-card-header">
+            <div class="market-icon">🌿</div>
+            <div class="market-tag tag-health">Wellness</div>
+          </div>
           <h3>Will microdosing GLP-1 drugs gain widespread use for PCOS management by end of 2026?</h3>
           <div class="market-odds">
             <div class="odds-bar">
@@ -184,7 +200,10 @@
         </div>
 
         <div class="market-card">
-          <div class="market-tag tag-business">Business</div>
+          <div class="market-card-header">
+            <div class="market-icon">📈</div>
+            <div class="market-tag tag-business">Business</div>
+          </div>
           <h3>Will women's longevity-focused interventions see a breakthrough funding round exceeding $100M in 2026?</h3>
           <div class="market-odds">
             <div class="odds-bar">
@@ -312,12 +331,23 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86 4.44V13.4a8.16 8.16 0 005.58 2.17V12.1a4.85 4.85 0 01-5.58-1.58V2h3.45v.44a4.84 4.84 0 002.13 3.36z"/></svg>
         </a>
       </div>
+      <div class="footer-contact">
+        <a href="mailto:hello@forcasther.com">hello@forcasther.com</a>
+      </div>
       <div class="footer-bottom">
-        <p class="footer-privacy">Your data stays private. We never share your information.</p>
+        <p class="footer-privacy"><a href="#" class="footer-link">Privacy Policy</a> &middot; Your data stays private. We never share your information.</p>
         <p class="footer-made">Made with love in Boise, Idaho</p>
       </div>
     </div>
   </footer>
+
+  <!-- Floating CTA Bar -->
+  <div class="floating-cta" id="floating-cta">
+    <div class="floating-cta-inner">
+      <span class="floating-cta-text"><strong>Join <span id="waitlist-count-float">500+</span> women</strong> on the waitlist</span>
+      <a href="#final-cta" class="btn btn-primary btn-float">Join the Waitlist</a>
+    </div>
+  </div>
 
   <!-- Success Modal -->
   <div class="modal-overlay" id="success-modal">

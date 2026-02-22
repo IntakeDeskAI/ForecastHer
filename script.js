@@ -173,6 +173,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const orbs = document.querySelectorAll('.orb');
   let ticking = false;
 
+  // --- Floating CTA bar ---
+  const floatingCta = document.getElementById('floating-cta');
+  const heroSection = document.getElementById('hero');
+  const finalCtaSection = document.getElementById('final-cta');
+
   window.addEventListener('scroll', () => {
     if (!ticking) {
       requestAnimationFrame(() => {
@@ -181,10 +186,40 @@ document.addEventListener('DOMContentLoaded', () => {
           const speed = (i + 1) * 0.03;
           orb.style.transform = `translateY(${scrollY * speed}px)`;
         });
+
+        // Show floating CTA after scrolling past hero, hide near final CTA
+        const heroBottom = heroSection.offsetTop + heroSection.offsetHeight;
+        const finalCtaTop = finalCtaSection.offsetTop - window.innerHeight;
+        if (scrollY > heroBottom && scrollY < finalCtaTop) {
+          floatingCta.classList.add('visible');
+        } else {
+          floatingCta.classList.remove('visible');
+        }
+
         ticking = false;
       });
       ticking = true;
     }
   });
+
+  // --- Live waitlist counter ---
+  async function updateWaitlistCount() {
+    try {
+      const { data, error } = await sb.rpc('get_waitlist_count');
+      if (!error && data !== null) {
+        const displayCount = Math.max(data, 500);
+        const text = displayCount >= 1000
+          ? `${(displayCount / 1000).toFixed(1).replace(/\.0$/, '')}k+`
+          : `${displayCount}+`;
+        document.querySelectorAll('[id^="waitlist-count"]').forEach(el => {
+          el.textContent = text;
+        });
+      }
+    } catch (e) {
+      // Silently fail — keep default "500+"
+    }
+  }
+
+  updateWaitlistCount();
 
 });

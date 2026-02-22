@@ -428,6 +428,22 @@ h1, h2, h3 {
   border-color: #c4b5fd;
 }
 
+.market-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.market-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.market-card-header .market-tag {
+  margin-bottom: 0;
+}
+
 .market-tag {
   display: inline-block;
   font-size: 0.72rem;
@@ -757,6 +773,71 @@ h1, h2, h3 {
   margin-top: 4px;
 }
 
+.footer-contact a {
+  color: #A78BFA;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.footer-contact a:hover {
+  color: #c4b5fd;
+}
+
+.footer-link {
+  color: rgba(255, 255, 255, 0.4);
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.footer-link:hover {
+  color: #A78BFA;
+}
+
+/* ========================================
+   FLOATING CTA BAR
+   ======================================== */
+.floating-cta {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 900;
+  background: rgba(26, 26, 46, 0.95);
+  backdrop-filter: blur(12px);
+  padding: 12px 24px;
+  transform: translateY(100%);
+  transition: transform 0.4s ease;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.floating-cta.visible {
+  transform: translateY(0);
+}
+
+.floating-cta-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.floating-cta-text {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+}
+
+.floating-cta-text strong {
+  color: #fff;
+}
+
+.btn-float {
+  padding: 10px 24px;
+  font-size: 0.9rem;
+  border-radius: 10px;
+}
+
 /* ========================================
    MODAL
    ======================================== */
@@ -926,5 +1007,18 @@ h1, h2, h3 {
 
   .modal {
     padding: 36px 24px;
+  }
+
+  .floating-cta-inner {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .floating-cta-text {
+    font-size: 0.85rem;
+  }
+
+  .btn-float {
+    width: 100%;
   }
 }
