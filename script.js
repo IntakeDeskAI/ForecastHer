@@ -1,0 +1,138 @@
+/* ========================================
+   ForecastHer — Landing Page Scripts
+   ======================================== */
+
+document.addEventListener('DOMContentLoaded', () => {
+
+  // --- Scroll-based fade-in animations ---
+  const fadeTargets = document.querySelectorAll(
+    '.card-problem, .market-card, .benefit-item, .testimonial, .stat-callout, .empowerment-text, .section-headline, .section-sub, .markets-note, .hero-social-proof'
+  );
+
+  fadeTargets.forEach(el => el.classList.add('fade-in'));
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+  fadeTargets.forEach(el => observer.observe(el));
+
+  // --- Odds bar animation on scroll ---
+  const oddsFills = document.querySelectorAll('.odds-fill');
+  oddsFills.forEach(fill => {
+    const targetWidth = fill.style.width;
+    fill.style.width = '0%';
+
+    const oddsObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          fill.style.width = targetWidth;
+          oddsObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+
+    oddsObserver.observe(fill);
+  });
+
+  // --- Form handling ---
+  const modal = document.getElementById('success-modal');
+  const modalClose = document.getElementById('modal-close');
+
+  function showModal() {
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideModal() {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  modalClose.addEventListener('click', hideModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) hideModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideModal();
+  });
+
+  // Hero form
+  const heroForm = document.getElementById('hero-form');
+  heroForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = heroForm.querySelector('input[type="email"]').value;
+    if (email) {
+      console.log('Waitlist signup:', email);
+      heroForm.reset();
+      showModal();
+    }
+  });
+
+  // Final form
+  const finalForm = document.getElementById('final-form');
+  finalForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = finalForm.querySelector('input[type="email"]').value;
+    const prediction = finalForm.querySelector('input[type="text"]').value;
+    if (email) {
+      console.log('Waitlist signup:', email, 'Prediction:', prediction);
+      finalForm.reset();
+      showModal();
+    }
+  });
+
+  // --- Smooth scroll for anchor links ---
+  document.querySelectorAll('a[href^="#"]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  // --- Stagger animation for market cards ---
+  const marketCards = document.querySelectorAll('.market-card');
+  marketCards.forEach((card, i) => {
+    card.style.transitionDelay = `${i * 80}ms`;
+  });
+
+  // --- Stagger for problem cards ---
+  const problemCards = document.querySelectorAll('.card-problem');
+  problemCards.forEach((card, i) => {
+    card.style.transitionDelay = `${i * 100}ms`;
+  });
+
+  // --- Stagger for benefit items ---
+  const benefitItems = document.querySelectorAll('.benefit-item');
+  benefitItems.forEach((item, i) => {
+    item.style.transitionDelay = `${i * 80}ms`;
+  });
+
+  // --- Parallax-like effect on hero orbs ---
+  const orbs = document.querySelectorAll('.orb');
+  let ticking = false;
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      requestAnimationFrame(() => {
+        const scrollY = window.scrollY;
+        orbs.forEach((orb, i) => {
+          const speed = (i + 1) * 0.03;
+          orb.style.transform = `translateY(${scrollY * speed}px)`;
+        });
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+});
