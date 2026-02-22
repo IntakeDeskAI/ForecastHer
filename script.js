@@ -2,6 +2,31 @@
    ForecastHer — Landing Page Scripts
    ======================================== */
 
+// --- Supabase Client ---
+const SUPABASE_URL = 'https://rqdzxptzbrfnpmlaiijv.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxZHp4cHR6YnJmbnBtbGFpaWp2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3NDM1NjMsImV4cCI6MjA4NzMxOTU2M30.deihTlAvI1vXyfRqPhJ6i5MQdnKadgM5p7V3uwasSog';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function submitToWaitlist(email, predictionIdea, source) {
+  const { error } = await supabase
+    .from('waitlist')
+    .insert([{
+      email: email.trim().toLowerCase(),
+      prediction_idea: predictionIdea || null,
+      source: source
+    }]);
+
+  if (error) {
+    if (error.code === '23505') {
+      // Duplicate email — still show success (don't reveal existing users)
+      return { success: true, duplicate: true };
+    }
+    console.error('Waitlist error:', error.message);
+    return { success: false, message: error.message };
+  }
+  return { success: true, duplicate: false };
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 
   // --- Scroll-based fade-in animations ---
@@ -63,28 +88,55 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') hideModal();
   });
 
+  function setButtonLoading(btn, loading) {
+    if (loading) {
+      btn.dataset.originalText = btn.textContent;
+      btn.textContent = 'Joining...';
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+    } else {
+      btn.textContent = btn.dataset.originalText || btn.textContent;
+      btn.disabled = false;
+      btn.style.opacity = '';
+    }
+  }
+
   // Hero form
   const heroForm = document.getElementById('hero-form');
-  heroForm.addEventListener('submit', (e) => {
+  heroForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = heroForm.querySelector('input[type="email"]').value;
+    const btn = heroForm.querySelector('button');
     if (email) {
-      console.log('Waitlist signup:', email);
-      heroForm.reset();
-      showModal();
+      setButtonLoading(btn, true);
+      const result = await submitToWaitlist(email, null, 'hero_form');
+      setButtonLoading(btn, false);
+      if (result.success) {
+        heroForm.reset();
+        showModal();
+      } else {
+        alert('Something went wrong. Please try again.');
+      }
     }
   });
 
   // Final form
   const finalForm = document.getElementById('final-form');
-  finalForm.addEventListener('submit', (e) => {
+  finalForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = finalForm.querySelector('input[type="email"]').value;
     const prediction = finalForm.querySelector('input[type="text"]').value;
+    const btn = finalForm.querySelector('button');
     if (email) {
-      console.log('Waitlist signup:', email, 'Prediction:', prediction);
-      finalForm.reset();
-      showModal();
+      setButtonLoading(btn, true);
+      const result = await submitToWaitlist(email, prediction, 'final_form');
+      setButtonLoading(btn, false);
+      if (result.success) {
+        finalForm.reset();
+        showModal();
+      } else {
+        alert('Something went wrong. Please try again.');
+      }
     }
   });
 
