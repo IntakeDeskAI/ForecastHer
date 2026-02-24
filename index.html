@@ -12,6 +12,69 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "ForecastHer",
+    "url": "https://forcasther.com",
+    "description": "The first prediction marketplace built for women. Trade on women's health predictions, femtech forecasts, menopause trends, fertility breakthroughs, and more.",
+    "email": "hello@forcasther.com",
+    "foundingLocation": {
+      "@type": "Place",
+      "name": "Boise, Idaho"
+    },
+    "sameAs": []
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is ForecastHer?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ForecastHer is the first prediction marketplace built for women. It lets you trade on outcomes related to women's health, fertility, femtech, wellness, beauty trends, and cultural moments — combining crowd wisdom with AI-powered insights."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How does a prediction market work?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "In a prediction market, you buy and sell shares in the outcome of real-world events. If you think something will happen, you buy 'Yes' shares. If it does happen, you earn a payout. The collective trading activity produces odds that reflect the crowd's best estimate of how likely an event is."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What kinds of markets will ForecastHer offer?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ForecastHer focuses on markets that matter to women: FDA approvals for menopause treatments, egg freezing cost trends, femtech funding milestones, endometriosis diagnostics breakthroughs, PCOS management innovations, and cultural moments in women's health."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "When does ForecastHer launch?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "ForecastHer is currently in pre-launch. Join the waitlist to get early access, free credits, and founding member status when beta markets go live."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is my data safe with ForecastHer?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes. ForecastHer only collects your email address and optional prediction ideas. Your data is stored securely with encryption and is never sold or shared with third parties."
+        }
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <!-- Hero Section -->
@@ -40,6 +103,7 @@
           <button type="submit" class="btn btn-primary">Join the Waitlist</button>
         </div>
         <p class="hero-form-note">Early joiners get <strong>free credits</strong> + <strong>founding member status</strong>. Be the first to trade on markets like menopause breakthroughs, fertility trends, beauty eras, and more.</p>
+        <p class="form-legal">By joining, you agree to our <a href="/privacy.html">Privacy Policy</a> and <a href="/terms.html">Terms of Service</a>.</p>
       </form>
       <div class="hero-social-proof">
         <div class="avatars">
@@ -319,6 +383,7 @@
           <input type="text" placeholder="What's one prediction you'd love to see?" aria-label="Your prediction idea">
           <button type="submit" class="btn btn-primary btn-large">Secure My Spot</button>
         </div>
+        <p class="form-legal form-legal-dark">By signing up, you agree to our <a href="/privacy.html">Privacy Policy</a> and <a href="/terms.html">Terms of Service</a>.</p>
       </form>
     </div>
   </section>
@@ -345,7 +410,7 @@
         <a href="mailto:hello@forcasther.com">hello@forcasther.com</a>
       </div>
       <div class="footer-bottom">
-        <p class="footer-privacy"><a href="/privacy.html" class="footer-link">Privacy Policy</a> &middot; Your data stays private. We never share your information.</p>
+        <p class="footer-privacy"><a href="/privacy.html" class="footer-link">Privacy Policy</a> &middot; <a href="/terms.html" class="footer-link">Terms of Service</a> &middot; Your data stays private. We never share your information.</p>
         <p class="footer-made">Made with love in Boise, Idaho</p>
       </div>
     </div>

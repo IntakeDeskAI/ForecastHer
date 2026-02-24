@@ -1,0 +1,31 @@
+# ForecastHer
+
+> The first prediction marketplace built for women.
+
+ForecastHer is a prediction marketplace where women trade on outcomes that matter to them — from women's health breakthroughs and fertility trends to femtech innovation and cultural moments. It combines crowd wisdom with AI-powered insights to give women foresight, community, and a voice in shaping the narratives that define their futures.
+
+## Key Facts
+
+- **What**: A prediction marketplace built by and for women
+- **Focus Areas**: Women's health, fertility, menopause, femtech, wellness, beauty trends, and cultural moments
+- **Status**: Pre-launch (waitlist open, beta planned for 2026)
+- **Location**: Boise, Idaho
+- **Contact**: hello@forcasther.com
+
+## How It Works
+
+Users create and trade on prediction markets related to women's worlds. Markets have clear resolution criteria and dates. The platform uses community-driven odds enhanced by AI insights to surface the most relevant forecasts.
+
+## Example Markets
+
+- Will a new non-hormonal menopause treatment receive full FDA approval in 2026?
+- Will egg freezing costs drop below $8,000 average in the US by end of 2026?
+- Will AI-powered at-home diagnostics for endometriosis achieve clinical-grade accuracy in 2026?
+- Will microdosing GLP-1 drugs gain widespread use for PCOS management by end of 2026?
+- Will women's longevity-focused interventions see a breakthrough funding round exceeding $100M in 2026?
+
+## Pages
+
+- [Home](https://forcasther.com/)
+- [Privacy Policy](https://forcasther.com/privacy.html)
+- [Terms of Service](https://forcasther.com/terms.html)
