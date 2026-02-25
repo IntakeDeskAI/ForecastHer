@@ -1,0 +1,14 @@
+/* TEAM */
+Name: ForecastHer
+Location: Boise, ID, USA
+Site: https://forcasther.com
+
+/* THANKS */
+Built with Next.js, Supabase, Radix UI, and Tailwind CSS.
+
+/* SITE */
+Last update: 2026-02-25
+Language: English
+Standards: HTML5, CSS3, ES2022
+Components: Next.js, React, Supabase, Radix UI, Tailwind CSS, Recharts
+Software: VS Code, Claude Code

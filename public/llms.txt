@@ -27,5 +27,8 @@ Users create and trade on prediction markets related to women's worlds. Markets 
 ## Pages
 
 - [Home](https://forcasther.com/)
-- [Privacy Policy](https://forcasther.com/privacy.html)
-- [Terms of Service](https://forcasther.com/terms.html)
+- [Markets](https://forcasther.com/markets)
+- [How It Works](https://forcasther.com/how-it-works)
+- [Leaderboard](https://forcasther.com/leaderboard)
+- [Privacy Policy](https://forcasther.com/privacy-policy)
+- [Terms of Service](https://forcasther.com/terms-of-service)
