@@ -1,0 +1,54 @@
+# Resolution Verifier — OpenClaw Workflow
+# Runs every hour. Finds markets due for resolution, verifies outcomes
+# against sources, generates resolved posts and assets, queues for review.
+
+resolution_verifier:
+  schedule:
+    timezone: America/Boise
+    cron: "0 * * * *"
+
+  steps:
+    - id: find_due_markets
+      type: http.get
+      url: "{{API}}/markets"
+      query:
+        status: "pending_resolution"
+        due: true
+
+    - id: verify_outcome
+      type: http.post
+      url: "{{API}}/research/verify-outcome"
+      body:
+        markets: "{{steps.find_due_markets.output}}"
+
+    - id: generate_resolved_posts
+      type: http.post
+      url: "{{API}}/content/drafts"
+      body:
+        resolved_markets: "{{steps.verify_outcome.output.resolved}}"
+        platforms: ["x", "instagram", "linkedin"]
+        format_map:
+          x: "single_post"
+          instagram: "card_caption"
+          linkedin: "single_post"
+        mode: "prelaunch"
+
+    - id: generate_resolved_assets
+      type: http.post
+      url: "{{API}}/assets/resolved"
+      body:
+        market_ids: "{{steps.verify_outcome.output.resolved_ids}}"
+
+    - id: attach_assets
+      type: http.post
+      url: "{{API}}/content/drafts/attach-assets"
+      body:
+        draft_ids: "{{steps.generate_resolved_posts.output.draft_ids}}"
+        asset_ids: "{{steps.generate_resolved_assets.output.asset_ids}}"
+
+    - id: mark_needs_review
+      type: http.post
+      url: "{{API}}/content/drafts/mark-status"
+      body:
+        draft_ids: "{{steps.generate_resolved_posts.output.draft_ids}}"
+        status: "needs_review"

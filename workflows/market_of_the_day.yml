@@ -1,0 +1,123 @@
+# Market of the Day — OpenClaw Workflow
+# Runs daily at 8 AM Boise time. Scans trends, proposes markets,
+# fetches sources, scores, generates drafts + assets, checks compliance,
+# then auto-schedules (low risk) or flags for review.
+
+market_of_the_day:
+  schedule:
+    timezone: America/Boise
+    cron: "0 8 * * *"
+
+  inputs:
+    platforms: ["x", "instagram", "tiktok", "linkedin"]
+    categories_allowed: ["womens_health", "femtech", "womens_sports", "consumer_trends"]
+    risk_level: "low"
+    min_sources: 2
+    confidence_min: 0.70
+    mode: "prelaunch"
+    numbers_label: "beta_credits"
+
+  steps:
+    - id: trend_scan
+      type: http.post
+      url: "{{API}}/research/trends"
+      body:
+        sources: ["x", "reddit", "google_trends", "rss"]
+        categories: "{{inputs.categories_allowed}}"
+        limit: 50
+
+    - id: propose_markets
+      type: ai.generate
+      model: "{{MODEL_WRITER}}"
+      prompt_ref: "prompts/propose_markets_v1"
+      variables:
+        trends: "{{steps.trend_scan.output}}"
+        count: 5
+        mode: "{{inputs.mode}}"
+        constraints:
+          require_resolve_by: true
+          require_resolution_criteria: true
+
+    - id: fetch_sources
+      type: http.post
+      url: "{{API}}/research/sources"
+      body:
+        markets: "{{steps.propose_markets.output.markets}}"
+        min_sources: "{{inputs.min_sources}}"
+
+    - id: score_markets
+      type: ai.generate
+      model: "{{MODEL_ANALYST}}"
+      prompt_ref: "prompts/score_markets_v1"
+      variables:
+        markets: "{{steps.fetch_sources.output.markets_with_sources}}"
+      outputs:
+        top_market: "$.ranked[0]"
+
+    - id: create_market_record
+      type: http.post
+      url: "{{API}}/markets"
+      body: "{{steps.score_markets.outputs.top_market}}"
+
+    - id: generate_drafts
+      type: http.post
+      url: "{{API}}/content/drafts"
+      body:
+        market_id: "{{steps.create_market_record.output.id}}"
+        platforms: "{{inputs.platforms}}"
+        format_map:
+          x: "thread"
+          instagram: "card_caption"
+          tiktok: "short_script"
+          linkedin: "single_post"
+        mode: "{{inputs.mode}}"
+        numbers_label: "{{inputs.numbers_label}}"
+
+    - id: generate_assets
+      type: http.post
+      url: "{{API}}/assets/card"
+      body:
+        market_id: "{{steps.create_market_record.output.id}}"
+        numbers_label: "{{inputs.numbers_label}}"
+
+    - id: attach_assets
+      type: http.post
+      url: "{{API}}/content/drafts/attach-assets"
+      body:
+        draft_ids: "{{steps.generate_drafts.output.draft_ids}}"
+        asset_ids: "{{steps.generate_assets.output.asset_ids}}"
+
+    - id: compliance_check
+      type: http.post
+      url: "{{API}}/content/drafts/compliance-check"
+      body:
+        draft_ids: "{{steps.generate_drafts.output.draft_ids}}"
+        required:
+          disclosure: true
+          citations: true
+          no_medical_advice: true
+          no_fake_metrics: true
+
+    - id: route_for_review
+      type: switch
+      cases:
+        - when: "{{steps.compliance_check.output.all_passed}} == true"
+          then:
+            - id: auto_schedule
+              type: http.post
+              url: "{{API}}/publisher/schedule"
+              body:
+                draft_ids: "{{steps.generate_drafts.output.draft_ids}}"
+                windows:
+                  x: { hour_start: 9, hour_end: 11 }
+                  instagram: { hour_start: 11, hour_end: 13 }
+                  tiktok: { hour_start: 17, hour_end: 20 }
+                  linkedin: { hour_start: 8, hour_end: 10 }
+        - when: "true"
+          then:
+            - id: mark_needs_review
+              type: http.post
+              url: "{{API}}/content/drafts/mark-status"
+              body:
+                draft_ids: "{{steps.generate_drafts.output.draft_ids}}"
+                status: "needs_review"
