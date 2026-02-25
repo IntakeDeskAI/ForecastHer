@@ -1,0 +1,50 @@
+# Weekly Digest — OpenClaw Workflow
+# Runs every Monday at 7 AM Boise time. Pulls last week's analytics,
+# selects active markets, drafts an email, and queues for review.
+
+weekly_digest:
+  schedule:
+    timezone: America/Boise
+    cron: "0 7 * * 1"
+
+  inputs:
+    mode: "prelaunch"
+    min_sources: 3
+
+  steps:
+    - id: pull_analytics
+      type: http.get
+      url: "{{API}}/analytics/overview"
+      query:
+        window_days: 7
+
+    - id: select_markets
+      type: http.get
+      url: "{{API}}/markets"
+      query:
+        window_days: 7
+        status: "active"
+
+    - id: draft_email
+      type: ai.generate
+      model: "{{MODEL_WRITER}}"
+      prompt_ref: "prompts/weekly_email_v1"
+      variables:
+        analytics: "{{steps.pull_analytics.output}}"
+        markets: "{{steps.select_markets.output}}"
+        mode: "{{inputs.mode}}"
+
+    - id: create_email_draft
+      type: http.post
+      url: "{{API}}/content/drafts"
+      body:
+        platform: "email"
+        format: "weekly_digest"
+        content: "{{steps.draft_email.output}}"
+
+    - id: mark_needs_review
+      type: http.post
+      url: "{{API}}/content/drafts/mark-status"
+      body:
+        draft_ids: ["{{steps.create_email_draft.output.id}}"]
+        status: "needs_review"

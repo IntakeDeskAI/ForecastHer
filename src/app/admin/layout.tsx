@@ -1,0 +1,186 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  LayoutDashboard,
+  TrendingUp,
+  FileEdit,
+  Calendar,
+  BarChart3,
+  Users,
+  Workflow,
+  Settings,
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  X,
+  Activity,
+  AlertTriangle,
+} from "lucide-react";
+
+const NAV_ITEMS = [
+  { href: "/admin", label: "Command Center", icon: LayoutDashboard },
+  { href: "/admin/markets", label: "Markets", icon: TrendingUp },
+  { href: "/admin/content", label: "Content Studio", icon: FileEdit },
+  { href: "/admin/scheduler", label: "Scheduler", icon: Calendar },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/admin/community", label: "Community", icon: Users },
+  { href: "/admin/workflows", label: "Workflows", icon: Workflow },
+  { href: "/admin/settings", label: "Admin", icon: Settings },
+];
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [autopostEnabled, setAutopostEnabled] = useState(false);
+  const [alertCount] = useState(2);
+
+  function isActive(href: string) {
+    if (href === "/admin") return pathname === "/admin";
+    return pathname.startsWith(href);
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-background">
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-sidebar transition-all duration-200 lg:static",
+          collapsed ? "w-16" : "w-60",
+          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        )}
+      >
+        {/* Sidebar header */}
+        <div className="flex h-14 items-center justify-between border-b border-border px-3">
+          {!collapsed && (
+            <Link href="/admin" className="flex items-center gap-2">
+              <span className="text-lg">🔮</span>
+              <span className="font-serif font-bold text-sm text-gradient-brand">
+                ForecastHer
+              </span>
+            </Link>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hidden lg:flex"
+            onClick={() => setCollapsed(!collapsed)}
+          >
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 lg:hidden"
+            onClick={() => setMobileOpen(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Navigation */}
+        <ScrollArea className="flex-1 py-2">
+          <nav className="space-y-1 px-2">
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    active
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                  )}
+                >
+                  <item.icon className="h-4 w-4 shrink-0" />
+                  {!collapsed && <span>{item.label}</span>}
+                </Link>
+              );
+            })}
+          </nav>
+        </ScrollArea>
+
+        {/* Sidebar footer */}
+        {!collapsed && (
+          <div className="border-t border-border p-3 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Autopost</span>
+              <Switch
+                checked={autopostEnabled}
+                onCheckedChange={setAutopostEnabled}
+                className="scale-75"
+              />
+            </div>
+            <Badge variant="outline" className="text-xs w-full justify-center">
+              dev
+            </Badge>
+          </div>
+        )}
+      </aside>
+
+      {/* Main area */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Top header bar */}
+        <header className="flex h-14 items-center justify-between border-b border-border bg-background px-4">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 lg:hidden"
+              onClick={() => setMobileOpen(true)}
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
+            <Badge variant="outline" className="text-xs">
+              <Activity className="h-3 w-3 mr-1" />
+              dev
+            </Badge>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-8 w-8 relative">
+              <Bell className="h-4 w-4" />
+              {alertCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
+                  {alertCount}
+                </span>
+              )}
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            </Button>
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6">{children}</div>
+        </main>
+      </div>
+    </div>
+  );
+}
