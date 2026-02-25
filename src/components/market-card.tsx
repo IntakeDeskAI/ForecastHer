@@ -101,6 +101,13 @@ export function MarketCard({ market }: MarketCardProps) {
             </div>
           </div>
 
+          {/* Resolution criteria preview */}
+          {market.resolution_criteria && (
+            <p className="text-[0.7rem] text-muted-foreground/70 mb-3 line-clamp-2 leading-relaxed italic">
+              Resolves: {market.resolution_criteria}
+            </p>
+          )}
+
           {/* Meta */}
           <div className="flex justify-between items-center text-[0.72rem]">
             <span className="text-muted-foreground">
@@ -109,7 +116,7 @@ export function MarketCard({ market }: MarketCardProps) {
                 : `Closes ${closesAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
             </span>
             <span className="text-muted-foreground">
-              ${market.volume.toLocaleString()} vol
+              {market.volume.toLocaleString()} credits
             </span>
           </div>
         </CardContent>

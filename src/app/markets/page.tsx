@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { MarketCard } from "@/components/market-card";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +20,7 @@ const categories = [
   { slug: "business", label: "Business", emoji: "📈" },
 ];
 
-// Same sample markets from the home page for demo purposes
+// Sample markets — play-money previews spanning women's health, culture, policy, business, sports
 const sampleMarkets: Market[] = [
   {
     id: "sample-1",
@@ -43,38 +44,38 @@ const sampleMarkets: Market[] = [
   },
   {
     id: "sample-2",
-    title: "Will egg freezing costs drop below $8,000 average in the US by end of 2026?",
+    title: "Will a WNBA team surpass 15,000 average attendance for the 2026 season?",
     description: null,
-    category: "fertility",
-    resolution_criteria: "Average cost tracked by FertilityIQ drops below $8,000.",
-    resolution_source: null,
-    closes_at: "2026-12-31T00:00:00Z",
-    resolves_at: "2027-01-15T00:00:00Z",
+    category: "culture",
+    resolution_criteria: "Official WNBA attendance data shows any team averaging 15,000+ per home game across the 2026 regular season.",
+    resolution_source: "WNBA.com official stats",
+    closes_at: "2026-09-30T00:00:00Z",
+    resolves_at: "2026-10-15T00:00:00Z",
     resolution: null,
     resolved_at: null,
     created_by: null,
     liquidity_param: 100,
-    yes_shares: -32.4,
+    yes_shares: 45.8,
     no_shares: 0,
-    volume: 8920,
+    volume: 9340,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
   },
   {
     id: "sample-3",
-    title: "Will a major celebrity publicly share a menopause journey that goes viral in 2026?",
+    title: "Will the US pass federal paid family leave legislation by end of 2026?",
     description: null,
-    category: "culture",
-    resolution_criteria: "A celebrity's menopause/perimenopause post reaches 1M+ engagements.",
-    resolution_source: null,
+    category: "business",
+    resolution_criteria: "A federal paid family leave bill is signed into law by December 31, 2026.",
+    resolution_source: "Congress.gov",
     closes_at: "2026-12-31T00:00:00Z",
     resolves_at: "2027-01-15T00:00:00Z",
     resolution: null,
     resolved_at: null,
     created_by: null,
     liquidity_param: 100,
-    yes_shares: 115,
+    yes_shares: -61.9,
     no_shares: 0,
     volume: 15230,
     status: "open",
@@ -103,10 +104,10 @@ const sampleMarkets: Market[] = [
   },
   {
     id: "sample-5",
-    title: "Will microdosing GLP-1 drugs gain widespread use for PCOS management by end of 2026?",
+    title: "Will egg freezing costs drop below $8,000 average in the US by end of 2026?",
     description: null,
-    category: "wellness",
-    resolution_criteria: "At least two major health systems recommend GLP-1 for PCOS management.",
+    category: "fertility",
+    resolution_criteria: "Average cost tracked by FertilityIQ or similar drops below $8,000.",
     resolution_source: null,
     closes_at: "2026-12-31T00:00:00Z",
     resolves_at: "2027-01-15T00:00:00Z",
@@ -114,20 +115,20 @@ const sampleMarkets: Market[] = [
     resolved_at: null,
     created_by: null,
     liquidity_param: 100,
-    yes_shares: 20.1,
+    yes_shares: -32.4,
     no_shares: 0,
-    volume: 9870,
+    volume: 8920,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
   },
   {
     id: "sample-6",
-    title: "Will women's longevity-focused interventions see a breakthrough funding round exceeding $100M in 2026?",
+    title: "Will a women-led consumer health startup raise a $100M+ round in 2026?",
     description: null,
     category: "business",
-    resolution_criteria: "A women's longevity startup raises >$100M in a single round, per Crunchbase.",
-    resolution_source: null,
+    resolution_criteria: "A women-led consumer health startup raises >$100M in a single round, per Crunchbase.",
+    resolution_source: "Crunchbase",
     closes_at: "2026-12-31T00:00:00Z",
     resolves_at: "2027-01-15T00:00:00Z",
     resolution: null,
@@ -187,11 +188,22 @@ export default async function MarketsPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="font-serif text-3xl font-bold mb-2">
-        Markets
-      </h1>
-      <p className="text-muted-foreground mb-8">
+      <div className="flex items-center gap-3 mb-2">
+        <h1 className="font-serif text-3xl font-bold">
+          Markets
+        </h1>
+        <span className="text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+          Play money
+        </span>
+      </div>
+      <p className="text-muted-foreground mb-1">
         Browse and trade on prediction markets that matter to women.
+      </p>
+      <p className="text-xs text-muted-foreground/70 mb-8">
+        All trades use free play-money credits.{" "}
+        <Link href="/how-it-works" className="underline hover:text-foreground">
+          How resolution works
+        </Link>
       </p>
 
       {/* Category Filter */}

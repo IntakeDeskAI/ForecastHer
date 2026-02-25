@@ -52,11 +52,19 @@ export default async function LeaderboardPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="font-serif text-3xl font-bold mb-2">
-        Leaderboard
-      </h1>
-      <p className="text-muted-foreground mb-8">
-        Top forecasters ranked by total profit.
+      <div className="flex items-center gap-3 mb-2">
+        <h1 className="font-serif text-3xl font-bold">
+          Leaderboard
+        </h1>
+        <span className="text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+          Play money
+        </span>
+      </div>
+      <p className="text-muted-foreground mb-1">
+        Top forecasters ranked by play-money profit.
+      </p>
+      <p className="text-xs text-muted-foreground/70 mb-8">
+        All profits shown are in free play-money credits. Build your track record now — rankings carry over when real-money trading launches.
       </p>
 
       {/* Top 3 Podium */}
