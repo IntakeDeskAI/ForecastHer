@@ -21,7 +21,7 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: 73.2,
     no_shares: 0,
-    volume: 12450,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
@@ -41,7 +41,7 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: 45.8,
     no_shares: 0,
-    volume: 9340,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
@@ -61,7 +61,7 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: -61.9,
     no_shares: 0,
-    volume: 15230,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
@@ -81,7 +81,7 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: -61.9,
     no_shares: 0,
-    volume: 6340,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
@@ -101,7 +101,7 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: -32.4,
     no_shares: 0,
-    volume: 8920,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
@@ -121,7 +121,7 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: 48.6,
     no_shares: 0,
-    volume: 11200,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
@@ -178,38 +178,42 @@ export default async function HomePage() {
             </Link>
             <Link href="/markets">
               <Button size="lg" variant="outline" className="text-base px-8">
-                Preview Markets
+                Explore Market Preview
               </Button>
             </Link>
           </div>
-          <p className="text-xs text-muted-foreground mt-4">
-            Free play-money credits on signup. Founding members get early access when real-money trading launches.
+          <p className="text-sm text-muted-foreground/80 mt-5">
+            Pre-launch beta. Play money. Real money later pending approvals.
           </p>
         </div>
       </section>
 
-      {/* Why Join Today */}
+      {/* What you get today */}
       <section className="py-20 bg-white">
         <div className="mx-auto max-w-5xl px-4">
           <h2 className="font-serif text-2xl md:text-3xl font-semibold text-center mb-4">
-            Why join today, not later
+            What you get by joining now
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-lg mx-auto">
-            We&apos;re in early access. Here&apos;s what&apos;s real right now.
+            Not &ldquo;someday.&rdquo; These are real, today.
           </p>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 gap-6">
             {[
               {
-                title: "Founding member status",
-                body: "First 500 members lock in founding badges, priority access to real-money markets, and the ability to propose new questions.",
+                title: "Founding Member badge",
+                body: "First 500 signups lock in a permanent Founding Member badge. It carries over to real-money trading and shows up on leaderboards forever.",
               },
               {
-                title: "1,000 play-money credits",
-                body: "Start trading immediately with free credits. Build your track record, climb the leaderboard, and prove your forecasting edge before stakes go up.",
+                title: "Early beta access",
+                body: "Get into the play-money beta before it opens to the public. Build a track record while the stakes are low and the community is small.",
               },
               {
-                title: "Shape the questions",
-                body: "Founding members vote on which markets launch next. Your domain knowledge decides what gets asked — not a generic algorithm.",
+                title: "Propose and vote on markets",
+                body: "Founding members decide which questions get asked next. Submit market ideas, vote on what launches, shape the platform from day one.",
+              },
+              {
+                title: "Monthly Forecast Pack",
+                body: "A monthly email with the sharpest new questions, why they matter, and how the community is calling them. Domain context you won't find on generic prediction sites.",
               },
             ].map((card, i) => (
               <div
@@ -229,14 +233,11 @@ export default async function HomePage() {
         <div className="mx-auto max-w-6xl px-4">
           <div className="flex items-center justify-center gap-3 mb-3">
             <h2 className="font-serif text-2xl md:text-3xl font-semibold text-center">
-              Preview Markets
+              Market Preview
             </h2>
-            <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
-              Play money
-            </span>
           </div>
           <p className="text-center text-muted-foreground mb-10 max-w-lg mx-auto">
-            Real questions with clear resolution criteria. Trade now with play credits — real-money trading coming soon.
+            Real questions. Clear resolution criteria. Odds shown are illustrative — real trading begins in beta.
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {markets.map((market) => (

@@ -37,7 +37,7 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: 73.2,
     no_shares: 0,
-    volume: 12450,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
@@ -57,7 +57,7 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: 45.8,
     no_shares: 0,
-    volume: 9340,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
@@ -77,7 +77,7 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: -61.9,
     no_shares: 0,
-    volume: 15230,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
@@ -97,7 +97,7 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: -61.9,
     no_shares: 0,
-    volume: 6340,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
@@ -117,7 +117,7 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: -32.4,
     no_shares: 0,
-    volume: 8920,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
@@ -137,7 +137,7 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: 48.6,
     no_shares: 0,
-    volume: 11200,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
@@ -197,10 +197,10 @@ export default async function MarketsPage({
         </span>
       </div>
       <p className="text-muted-foreground mb-1">
-        Browse and trade on prediction markets that matter to women.
+        Questions we plan to launch. Odds shown are illustrative.
       </p>
       <p className="text-xs text-muted-foreground/70 mb-8">
-        All trades use free play-money credits.{" "}
+        Real trading begins in beta with play-money credits.{" "}
         <Link href="/how-it-works" className="underline hover:text-foreground">
           How resolution works
         </Link>

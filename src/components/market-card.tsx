@@ -115,9 +115,15 @@ export function MarketCard({ market }: MarketCardProps) {
                 ? `Resolved ${new Date(market.resolved_at!).toLocaleDateString()}`
                 : `Closes ${closesAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
             </span>
-            <span className="text-muted-foreground">
-              {market.volume.toLocaleString()} credits
-            </span>
+            {market.volume > 0 ? (
+              <span className="text-muted-foreground">
+                {market.volume.toLocaleString()} credits
+              </span>
+            ) : (
+              <span className="text-muted-foreground/50 italic">
+                Illustrative
+              </span>
+            )}
           </div>
         </CardContent>
       </Card>
