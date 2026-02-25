@@ -49,14 +49,14 @@ export function Footer() {
           <div className="text-center text-xs text-white/30 space-y-1">
             <p>
               <Link
-                href="/privacy.html"
+                href="/privacy-policy"
                 className="underline hover:text-white/50"
               >
                 Privacy Policy
               </Link>
               {" · "}
               <Link
-                href="/terms.html"
+                href="/terms-of-service"
                 className="underline hover:text-white/50"
               >
                 Terms of Service
