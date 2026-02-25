@@ -1,0 +1,7 @@
+# ForecastHer Security Contact
+# https://securitytxt.org/
+
+Contact: mailto:security@forcasther.com
+Preferred-Languages: en
+Canonical: https://forcasther.com/.well-known/security.txt
+Expires: 2027-02-25T00:00:00.000Z

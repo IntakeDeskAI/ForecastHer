@@ -30,6 +30,12 @@ export const metadata: Metadata = {
   icons: {
     icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>",
   },
+  other: {
+    "geo.region": "US-ID",
+    "geo.placename": "Boise",
+    "geo.position": "43.6150;-116.2023",
+    ICBM: "43.6150, -116.2023",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
