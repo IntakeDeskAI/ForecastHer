@@ -127,17 +127,20 @@ export default function HowItWorksPage() {
       {/* CTA */}
       <div className="text-center">
         <h2 className="font-serif text-2xl font-semibold mb-4">
-          Ready to Start Predicting?
+          Ready to test your forecasting edge?
         </h2>
+        <p className="text-sm text-muted-foreground mb-6">
+          Sign up for free play-money credits and start building your track record.
+        </p>
         <div className="flex gap-3 justify-center">
           <Link href="/signup">
             <Button size="lg" className="gradient-purple text-white">
-              Sign Up Free
+              Join the Waitlist
             </Button>
           </Link>
           <Link href="/markets">
             <Button size="lg" variant="outline">
-              Browse Markets
+              Preview Markets
             </Button>
           </Link>
         </div>

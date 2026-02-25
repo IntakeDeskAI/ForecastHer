@@ -4,7 +4,7 @@ import { MarketCard } from "@/components/market-card";
 import { createClient } from "@/lib/supabase/server";
 import type { Market } from "@/lib/types";
 
-// Sample markets for when the database isn't seeded yet
+// Sample markets — play-money previews spanning women's health, culture, policy, business, sports
 const sampleMarkets: Market[] = [
   {
     id: "sample-1",
@@ -21,47 +21,47 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: 73.2,
     no_shares: 0,
-    volume: 12450,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
   },
   {
     id: "sample-2",
-    title: "Will egg freezing costs drop below $8,000 average in the US by end of 2026?",
+    title: "Will a WNBA team surpass 15,000 average attendance for the 2026 season?",
     description: null,
-    category: "fertility",
-    resolution_criteria: "Average cost tracked by FertilityIQ or similar drops below $8,000.",
-    resolution_source: null,
-    closes_at: "2026-12-31T00:00:00Z",
-    resolves_at: "2027-01-15T00:00:00Z",
+    category: "culture",
+    resolution_criteria: "Official WNBA attendance data shows any team averaging 15,000+ per home game across the 2026 regular season.",
+    resolution_source: "WNBA.com official stats",
+    closes_at: "2026-09-30T00:00:00Z",
+    resolves_at: "2026-10-15T00:00:00Z",
     resolution: null,
     resolved_at: null,
     created_by: null,
     liquidity_param: 100,
-    yes_shares: -32.4,
+    yes_shares: 45.8,
     no_shares: 0,
-    volume: 8920,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
   },
   {
     id: "sample-3",
-    title: "Will a major celebrity publicly share a menopause journey that goes viral in 2026?",
+    title: "Will the US pass federal paid family leave legislation by end of 2026?",
     description: null,
-    category: "culture",
-    resolution_criteria: "A celebrity's menopause/perimenopause post reaches 1M+ engagements.",
-    resolution_source: null,
+    category: "business",
+    resolution_criteria: "A federal paid family leave bill is signed into law by December 31, 2026.",
+    resolution_source: "Congress.gov",
     closes_at: "2026-12-31T00:00:00Z",
     resolves_at: "2027-01-15T00:00:00Z",
     resolution: null,
     resolved_at: null,
     created_by: null,
     liquidity_param: 100,
-    yes_shares: 115,
+    yes_shares: -61.9,
     no_shares: 0,
-    volume: 15230,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
@@ -81,17 +81,17 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: -61.9,
     no_shares: 0,
-    volume: 6340,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
   },
   {
     id: "sample-5",
-    title: "Will microdosing GLP-1 drugs gain widespread use for PCOS management by end of 2026?",
+    title: "Will egg freezing costs drop below $8,000 average in the US by end of 2026?",
     description: null,
-    category: "wellness",
-    resolution_criteria: "At least two major health systems recommend GLP-1 for PCOS management.",
+    category: "fertility",
+    resolution_criteria: "Average cost tracked by FertilityIQ or similar drops below $8,000.",
     resolution_source: null,
     closes_at: "2026-12-31T00:00:00Z",
     resolves_at: "2027-01-15T00:00:00Z",
@@ -99,20 +99,20 @@ const sampleMarkets: Market[] = [
     resolved_at: null,
     created_by: null,
     liquidity_param: 100,
-    yes_shares: 20.1,
+    yes_shares: -32.4,
     no_shares: 0,
-    volume: 9870,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
   },
   {
     id: "sample-6",
-    title: "Will women's longevity-focused interventions see a breakthrough funding round exceeding $100M in 2026?",
+    title: "Will a women-led consumer health startup raise a $100M+ round in 2026?",
     description: null,
     category: "business",
-    resolution_criteria: "A women's longevity startup raises >$100M in a single round, per Crunchbase.",
-    resolution_source: null,
+    resolution_criteria: "A women-led consumer health startup raises >$100M in a single round, per Crunchbase.",
+    resolution_source: "Crunchbase",
     closes_at: "2026-12-31T00:00:00Z",
     resolves_at: "2027-01-15T00:00:00Z",
     resolution: null,
@@ -121,7 +121,7 @@ const sampleMarkets: Market[] = [
     liquidity_param: 100,
     yes_shares: 48.6,
     no_shares: 0,
-    volume: 11200,
+    volume: 0,
     status: "open",
     featured: true,
     created_at: new Date().toISOString(),
@@ -162,49 +162,66 @@ export default async function HomePage() {
 
         <div className="mx-auto max-w-3xl px-4 py-24 md:py-36 text-center relative z-10">
           <span className="inline-block bg-primary/10 text-primary text-xs font-semibold px-4 py-1.5 rounded-full mb-5 tracking-wide">
-            The First Prediction Market Built for Her
+            Early Access — Play-Money Beta
           </span>
           <h1 className="font-serif text-4xl md:text-6xl font-bold text-foreground mb-4 leading-tight">
-            Forecast Her Future
+            The Prediction Market for Women&apos;s Health &amp; Culture
           </h1>
           <p className="text-base md:text-lg text-muted-foreground mb-8 max-w-xl mx-auto leading-relaxed">
-            Join the prediction marketplace built for women&apos;s worlds — cycles, wellness, trends, and triumphs. Crowd wisdom meets empowerment.
+            Sharp questions. Credible resolution. A community that actually knows the domain. Trade on what&apos;s next in femtech, fertility, wellness, policy, and culture.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/signup">
               <Button size="lg" className="gradient-purple text-white shadow-lg shadow-purple/30 hover:shadow-purple/50 transition-shadow text-base px-8">
-                Start Predicting
+                Join the Waitlist
               </Button>
             </Link>
             <Link href="/markets">
               <Button size="lg" variant="outline" className="text-base px-8">
-                Browse Markets
+                Explore Market Preview
               </Button>
             </Link>
           </div>
-          <p className="text-xs text-muted-foreground mt-4">
-            Get <strong className="text-primary">1,000 free credits</strong> + <strong className="text-primary">founding member status</strong>
+          <p className="text-sm text-muted-foreground/80 mt-5">
+            Pre-launch beta. Play money. Real money later pending approvals.
           </p>
         </div>
       </section>
 
-      {/* Problem / Value Prop */}
+      {/* What you get today */}
       <section className="py-20 bg-white">
         <div className="mx-auto max-w-5xl px-4">
-          <h2 className="font-serif text-2xl md:text-3xl font-semibold text-center mb-12">
-            Women&apos;s futures deserve better predictions
+          <h2 className="font-serif text-2xl md:text-3xl font-semibold text-center mb-4">
+            What you get by joining now
           </h2>
-          <div className="grid md:grid-cols-3 gap-6">
+          <p className="text-center text-muted-foreground mb-12 max-w-lg mx-auto">
+            Not &ldquo;someday.&rdquo; These are real, today.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-6">
             {[
-              "Endless apps track cycles... but who predicts the next breakthrough?",
-              "Crowd wisdom is powerful — yet most prediction markets ignore her perspective.",
-              "ForecastHer changes that: Real women, real insights, real stakes.",
-            ].map((text, i) => (
+              {
+                title: "Founding Member badge",
+                body: "First 500 signups lock in a permanent Founding Member badge. It carries over to real-money trading and shows up on leaderboards forever.",
+              },
+              {
+                title: "Early beta access",
+                body: "Get into the play-money beta before it opens to the public. Build a track record while the stakes are low and the community is small.",
+              },
+              {
+                title: "Propose and vote on markets",
+                body: "Founding members decide which questions get asked next. Submit market ideas, vote on what launches, shape the platform from day one.",
+              },
+              {
+                title: "Monthly Forecast Pack",
+                body: "A monthly email with the sharpest new questions, why they matter, and how the community is calling them. Domain context you won't find on generic prediction sites.",
+              },
+            ].map((card, i) => (
               <div
                 key={i}
-                className="bg-muted border border-accent rounded-2xl p-7 text-center hover:-translate-y-1 transition-transform"
+                className="bg-muted border border-accent rounded-2xl p-7 hover:-translate-y-1 transition-transform"
               >
-                <p className="text-muted-foreground leading-relaxed">{text}</p>
+                <h3 className="font-semibold text-foreground mb-2">{card.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{card.body}</p>
               </div>
             ))}
           </div>
@@ -214,11 +231,13 @@ export default async function HomePage() {
       {/* Featured Markets */}
       <section className="py-20 bg-gradient-to-b from-gray-50 to-[#faf8ff]">
         <div className="mx-auto max-w-6xl px-4">
-          <h2 className="font-serif text-2xl md:text-3xl font-semibold text-center mb-3">
-            See What&apos;s Coming — Markets for Her
-          </h2>
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <h2 className="font-serif text-2xl md:text-3xl font-semibold text-center">
+              Market Preview
+            </h2>
+          </div>
           <p className="text-center text-muted-foreground mb-10 max-w-lg mx-auto">
-            Preview prediction markets you&apos;ll be able to trade on. Real questions. Real odds. Real impact.
+            Real questions. Clear resolution criteria. Odds shown are illustrative — real trading begins in beta.
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {markets.map((market) => (
@@ -235,22 +254,39 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Empowerment */}
-      <section className="py-20 bg-gradient-to-br from-[#ede9fe] to-[#ccfbf1] text-center">
-        <div className="mx-auto max-w-3xl px-4">
-          <h2 className="font-serif text-2xl md:text-3xl font-semibold mb-6">
-            Not Just Predictions — Empowerment
+      {/* What Makes This Different */}
+      <section className="py-20 bg-gradient-to-br from-[#ede9fe] to-[#ccfbf1]">
+        <div className="mx-auto max-w-5xl px-4">
+          <h2 className="font-serif text-2xl md:text-3xl font-semibold text-center mb-12">
+            Not just &ldquo;for women&rdquo; — built on domain expertise
           </h2>
-          <p className="text-muted-foreground mb-10 leading-relaxed">
-            ForecastHer is built by and for women who want more than tracking: foresight, community, and control over the narratives that matter.
-          </p>
-          <div className="inline-block bg-white/70 backdrop-blur-sm rounded-2xl px-10 py-8 border border-purple/20">
-            <div className="font-serif text-4xl md:text-5xl font-bold text-gradient-brand mb-2">
-              $75B+
-            </div>
-            <p className="text-muted-foreground text-sm max-w-xs">
-              Femtech is booming — but predictions for her health &amp; trends? Untapped until now.
-            </p>
+          <div className="grid md:grid-cols-2 gap-6">
+            {[
+              {
+                title: "Questions that matter",
+                body: "FDA approvals, fertility costs, femtech funding, policy shifts, WNBA attendance — every market is sourced from real debates in women's health and culture.",
+              },
+              {
+                title: "Transparent resolution",
+                body: "Every market lists its resolution criteria and sources upfront. No vibes. No ambiguity. You know the rules before you trade.",
+              },
+              {
+                title: "Community that knows the domain",
+                body: "Clinicians, researchers, patients, founders, and advocates — people who actually follow women's health are better forecasters on these questions than the general public.",
+              },
+              {
+                title: "Play money today, real stakes soon",
+                body: "We're building the credibility infrastructure first. Track records, resolution quality, and community trust — then real-money trading once we have regulatory approvals.",
+              },
+            ].map((card, i) => (
+              <div
+                key={i}
+                className="bg-white/70 backdrop-blur-sm rounded-2xl p-7 border border-purple/10"
+              >
+                <h3 className="font-semibold text-foreground mb-2">{card.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{card.body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -259,14 +295,14 @@ export default async function HomePage() {
       <section className="py-20 bg-[#1a1a2e] text-center">
         <div className="mx-auto max-w-2xl px-4">
           <h2 className="font-serif text-2xl md:text-3xl font-semibold text-white mb-3">
-            Don&apos;t Miss Out — Her Future Starts Here
+            Get in early. Build your track record.
           </h2>
           <p className="text-white/60 mb-8">
-            Sign up for early access, free credits, and founding member status.
+            Free play-money credits, founding member status, and a seat at the table when real-money trading launches.
           </p>
           <Link href="/signup">
             <Button size="lg" className="gradient-purple text-white text-base px-10 shadow-lg shadow-purple/30">
-              Join ForecastHer
+              Join the Waitlist
             </Button>
           </Link>
         </div>

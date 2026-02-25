@@ -77,12 +77,12 @@ export function Navbar() {
             <>
               <Link href="/portfolio">
                 <Button variant="ghost" size="sm">
-                  Portfolio
+                  My Portfolio
                 </Button>
               </Link>
-              <Link href="/portfolio">
+              <Link href="/markets">
                 <Button size="sm" className="gradient-purple text-white">
-                  Trade Now
+                  Preview Markets
                 </Button>
               </Link>
             </>
@@ -95,7 +95,7 @@ export function Navbar() {
               </Link>
               <Link href="/signup">
                 <Button size="sm" className="gradient-purple text-white">
-                  Sign Up Free
+                  Join Waitlist
                 </Button>
               </Link>
             </>
@@ -133,7 +133,7 @@ export function Navbar() {
                     onClick={() => setOpen(false)}
                     className="px-4 py-3 text-sm font-medium rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
                   >
-                    Portfolio
+                    My Portfolio
                   </Link>
                 </>
               ) : (
@@ -145,7 +145,7 @@ export function Navbar() {
                   </Link>
                   <Link href="/signup" onClick={() => setOpen(false)}>
                     <Button className="w-full gradient-purple text-white">
-                      Sign Up Free
+                      Join Waitlist
                     </Button>
                   </Link>
                 </>
