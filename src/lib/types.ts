@@ -250,3 +250,156 @@ export interface Alert {
   acknowledged: boolean;
   created_at: string;
 }
+
+// ── AI Studio Types ─────────────────────────────────────────────────
+
+export type AIOutputType = "markets" | "drafts" | "assets" | "schedule";
+export type NumbersLabel = "illustrative" | "beta_credits";
+export type PromptType =
+  | "market_proposal"
+  | "market_scoring"
+  | "research_summarizer"
+  | "platform_writer"
+  | "compliance_rewrite"
+  | "hook_generator"
+  | "weekly_digest"
+  | "comment_reply";
+
+export interface GenerateConfig {
+  mode: "pre_launch" | "live";
+  outputs: AIOutputType[];
+  platforms: Platform[];
+  volume: 1 | 3 | 5;
+  categories_allowed: string[];
+  risk_ceiling: RiskLevel;
+  require_sources_min: number;
+  confidence_min: number;
+  numbers_label: NumbersLabel;
+  disclosure_template: string;
+}
+
+export interface MarketCandidate {
+  id: string;
+  question: string;
+  resolve_by: string;
+  resolution_criteria: string;
+  sources_found: SourceReference[];
+  confidence: number;
+  engagement_score: number;
+  risk_flags: string[];
+  risk_level: RiskLevel;
+  category: string;
+  why_yes: string;
+  why_no: string;
+  what_changes: string;
+  status: "proposed" | "accepted" | "rejected" | "created";
+}
+
+export interface SourceReference {
+  url: string;
+  title: string;
+  domain: string;
+  summary: string;
+  fetched_at: string;
+  reliability_score: number;
+}
+
+export interface PromptTemplate {
+  id: string;
+  name: string;
+  type: PromptType;
+  version: number;
+  content: string;
+  variables: string[];
+  is_locked: boolean;
+  last_used: string | null;
+  performance_stats: {
+    uses: number;
+    avg_confidence: number;
+    avg_engagement: number;
+    compliance_pass_rate: number;
+  };
+  examples: string[];
+  versions: PromptVersion[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PromptVersion {
+  version: number;
+  content: string;
+  changed_by: string;
+  changed_at: string;
+  note: string | null;
+}
+
+export interface WhitelistedSource {
+  id: string;
+  domain: string;
+  name: string;
+  type: "news" | "government" | "research" | "industry" | "social";
+  reliability_score: number;
+  is_active: boolean;
+  added_at: string;
+}
+
+export interface RSSFeed {
+  id: string;
+  url: string;
+  name: string;
+  category: string;
+  last_fetched: string | null;
+  is_active: boolean;
+  item_count: number;
+}
+
+export interface TrendInput {
+  source: "reddit" | "x_trends" | "google_trends" | "newsletters";
+  is_enabled: boolean;
+  config: Record<string, unknown>;
+}
+
+export interface SourceFreshnessRule {
+  max_age_hours: number;
+  source_type: string;
+  action: "warn" | "block";
+}
+
+export interface GuardrailSwitch {
+  id: string;
+  label: string;
+  description: string;
+  is_enabled: boolean;
+  category: "compliance" | "safety" | "quality";
+}
+
+export interface GuardrailPhraseList {
+  forbidden: string[];
+  required: string[];
+}
+
+export interface RiskCategoryMap {
+  category: string;
+  default_risk: RiskLevel;
+  requires_extra_review: boolean;
+}
+
+export interface AIRunLog {
+  id: string;
+  run_type: "generate_markets" | "generate_drafts" | "generate_assets" | "compliance_check" | "trend_scan" | "research" | "scoring";
+  status: "running" | "completed" | "failed";
+  started_at: string;
+  completed_at: string | null;
+  input_payload: Record<string, unknown>;
+  prompt_version: string;
+  model_used: string;
+  sources_used: SourceReference[];
+  output: Record<string, unknown> | null;
+  compliance_results: ComplianceCheck[];
+  human_edits: string | null;
+  final_posted_version: string | null;
+  outcome_metrics: Record<string, number> | null;
+  duration_ms: number | null;
+  tokens_used: number | null;
+  error: string | null;
+}
