@@ -106,7 +106,7 @@ function TokensTab() {
   const [loading, setLoading] = useState(true);
   const [connectPlatform, setConnectPlatform] = useState<Platform | null>(null);
   const [testingPlatform, setTestingPlatform] = useState<Platform | null>(null);
-  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [testResults, setTestResults] = useState<Record<string, { ok: boolean; message: string }>>({});
 
   const fetchTokens = useCallback(async () => {
     try {
@@ -148,7 +148,7 @@ function TokensTab() {
     if (!token) return;
 
     setTestingPlatform(platform);
-    setTestResult(null);
+    setTestResults((prev) => { const next = { ...prev }; delete next[platform]; return next; });
     try {
       const res = await fetch("/api/admin/tokens/test", {
         method: "POST",
@@ -160,12 +160,18 @@ function TokensTab() {
         }),
       });
       const data = await res.json();
-      setTestResult({
-        ok: res.ok && data.ok,
-        message: data.message || data.warning || data.error || "Unknown result",
-      });
+      setTestResults((prev) => ({
+        ...prev,
+        [platform]: {
+          ok: res.ok && data.ok,
+          message: data.message || data.warning || data.error || "Unknown result",
+        },
+      }));
     } catch {
-      setTestResult({ ok: false, message: "Network error. Try again." });
+      setTestResults((prev) => ({
+        ...prev,
+        [platform]: { ok: false, message: "Network error. Try again." },
+      }));
     } finally {
       setTestingPlatform(null);
     }
@@ -212,32 +218,6 @@ function TokensTab() {
               Connect at least one platform below to enable posting.
             </p>
           </div>
-        </div>
-      )}
-
-      {/* Test result toast */}
-      {testResult && (
-        <div
-          className={`rounded-lg border p-3 flex items-start gap-2 text-sm ${
-            testResult.ok
-              ? "border-green-200 bg-green-50 text-green-800"
-              : "border-red-200 bg-red-50 text-red-800"
-          }`}
-        >
-          {testResult.ok ? (
-            <CheckCircle className="h-4 w-4 mt-0.5 shrink-0" />
-          ) : (
-            <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
-          )}
-          <div className="flex-1">
-            <p className="text-xs">{testResult.message}</p>
-          </div>
-          <button
-            onClick={() => setTestResult(null)}
-            className="text-xs underline opacity-60 hover:opacity-100"
-          >
-            Dismiss
-          </button>
         </div>
       )}
 
@@ -353,6 +333,30 @@ function TokensTab() {
                         Disconnect
                       </Button>
                     </div>
+
+                    {/* Inline test result */}
+                    {testResults[platform] && (
+                      <div
+                        className={`mt-3 rounded-lg border p-3 flex items-start gap-2 text-xs ${
+                          testResults[platform].ok
+                            ? "border-green-200 bg-green-50 text-green-800"
+                            : "border-red-200 bg-red-50 text-red-800"
+                        }`}
+                      >
+                        {testResults[platform].ok ? (
+                          <CheckCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        ) : (
+                          <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                        )}
+                        <span className="flex-1">{testResults[platform].message}</span>
+                        <button
+                          onClick={() => setTestResults((prev) => { const next = { ...prev }; delete next[platform]; return next; })}
+                          className="underline opacity-60 hover:opacity-100"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
 
