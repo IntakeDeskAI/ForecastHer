@@ -43,6 +43,7 @@ import {
   Search,
   Plus,
   Hash,
+  Sparkles,
 } from "lucide-react";
 
 // ── Draft Queue Tab ──────────────────────────────────────────────────
@@ -96,13 +97,56 @@ function DraftQueue() {
       </div>
 
       {drafts.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            <FileText className="h-8 w-8 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No drafts in the queue.</p>
-            <p className="text-xs mt-1">
-              Generate content from the Markets tab or run the Market of the Day workflow.
-            </p>
+        <Card className="border-dashed border-2">
+          <CardContent className="py-10">
+            <div className="text-center mb-6">
+              <FileText className="h-10 w-10 mx-auto mb-3 text-purple-400" />
+              <h3 className="font-semibold text-base">No drafts in the queue</h3>
+              <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+                Your content pipeline is empty. Run the quickstart to generate draft posts
+                from AI-proposed markets, ready for your review.
+              </p>
+            </div>
+
+            <div className="max-w-lg mx-auto space-y-3">
+              <div className="rounded-lg border border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-lg gradient-purple text-white flex items-center justify-center shrink-0 mt-0.5">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">1-Minute Quickstart</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Generate 3 markets with sources, create drafts for X and Instagram,
+                      generate card assets, and build a schedule plan (no posting).
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <Button size="sm" className="gradient-purple text-white text-xs gap-1">
+                        <Sparkles className="h-3 w-3" /> Run Quickstart
+                      </Button>
+                      <Button size="sm" variant="outline" className="text-xs gap-1">
+                        <Send className="h-3 w-3" /> Generate from Existing Markets
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 text-xs text-muted-foreground px-2">
+                <div className="flex-1 border-t" />
+                <span>or</span>
+                <div className="flex-1 border-t" />
+              </div>
+
+              <div className="flex justify-center gap-3">
+                <Button variant="outline" size="sm" className="text-xs">
+                  Write a Draft Manually
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs">
+                  Enable Market of the Day Workflow
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       ) : (

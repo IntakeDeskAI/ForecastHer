@@ -38,6 +38,7 @@ import {
   CheckCircle,
   AlertTriangle,
   Search,
+  Sparkles,
 } from "lucide-react";
 
 // ── Market Inbox Tab ─────────────────────────────────────────────────
@@ -59,13 +60,56 @@ function MarketInbox() {
       </div>
 
       {suggestions.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            <Search className="h-8 w-8 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No market suggestions yet.</p>
-            <p className="text-xs mt-1">
-              Run a trend scan or enable the Market of the Day workflow to populate the inbox.
-            </p>
+        <Card className="border-dashed border-2">
+          <CardContent className="py-10">
+            <div className="text-center mb-6">
+              <Search className="h-10 w-10 mx-auto mb-3 text-purple-400" />
+              <h3 className="font-semibold text-base">No market suggestions yet</h3>
+              <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+                Your inbox is empty. Run the quickstart below to generate your first batch of
+                AI-proposed markets with sources and resolution criteria.
+              </p>
+            </div>
+
+            <div className="max-w-lg mx-auto space-y-3">
+              <div className="rounded-lg border border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-lg gradient-purple text-white flex items-center justify-center shrink-0 mt-0.5">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">1-Minute Quickstart</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This will scan trends, propose 3 markets with sources, generate X and Instagram
+                      drafts, create assets, and build a schedule plan (without posting).
+                    </p>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      <Button size="sm" className="gradient-purple text-white text-xs gap-1">
+                        <Sparkles className="h-3 w-3" /> Run Quickstart
+                      </Button>
+                      <Button size="sm" variant="outline" className="text-xs gap-1">
+                        <Plus className="h-3 w-3" /> Run Trend Scan Only
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 text-xs text-muted-foreground px-2">
+                <div className="flex-1 border-t" />
+                <span>or</span>
+                <div className="flex-1 border-t" />
+              </div>
+
+              <div className="flex justify-center gap-3">
+                <Button variant="outline" size="sm" className="text-xs">
+                  Build a Market Manually
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs">
+                  Enable Market of the Day Workflow
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -289,6 +333,83 @@ function AllMarkets() {
 
 // ── Market Builder Tab ───────────────────────────────────────────────
 
+// Resolution Clarity Score: measures how specific and enforceable a market's resolution criteria is
+function computeResolutionClarityScore(
+  question: string,
+  criteria: string,
+  sources: string[],
+  resolveDate: string
+): { score: number; checks: { label: string; passed: boolean; detail: string }[] } {
+  const checks: { label: string; passed: boolean; detail: string }[] = [];
+
+  // 1. Question is a clear yes/no format
+  const isYesNo = /^(will|does|is|has|can|are|do|should)\b/i.test(question.trim());
+  checks.push({
+    label: "Yes/No question format",
+    passed: isYesNo,
+    detail: isYesNo ? "Question starts with a yes/no verb" : "Question should start with Will/Does/Is/Has/Can",
+  });
+
+  // 2. Has at least one primary resolution source
+  const hasSource = sources.some((s) => s.trim().length > 0);
+  checks.push({
+    label: "Primary resolution source",
+    passed: hasSource,
+    detail: hasSource ? `${sources.filter((s) => s.trim()).length} source(s) provided` : "At least one source URL is required",
+  });
+
+  // 3. Resolve date is not absurd (not > 2 years away, not in the past)
+  let dateOk = false;
+  let dateDetail = "No resolve date set";
+  if (resolveDate) {
+    const resolve = new Date(resolveDate);
+    const now = new Date();
+    const twoYearsFromNow = new Date(now.getFullYear() + 2, now.getMonth(), now.getDate());
+    if (resolve < now) {
+      dateDetail = "Resolve date is in the past";
+    } else if (resolve > twoYearsFromNow) {
+      dateDetail = "Resolve date is over 2 years away — too long to verify reliably";
+    } else {
+      dateOk = true;
+      const daysAway = Math.ceil((resolve.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      dateDetail = `${daysAway} days from now`;
+    }
+  }
+  checks.push({
+    label: "Reasonable resolve date",
+    passed: dateOk,
+    detail: dateDetail,
+  });
+
+  // 4. Resolution criteria is specific enough (min 50 chars, mentions a concrete action/source)
+  const criteriaLen = criteria.trim().length;
+  const isSpecific = criteriaLen >= 50 && (/\b(source|announce|approve|publish|file|report|confirm|data|press release)\b/i.test(criteria));
+  checks.push({
+    label: "Specific resolution criteria",
+    passed: isSpecific,
+    detail: criteriaLen < 50
+      ? `Only ${criteriaLen} characters — needs at least 50 with specific trigger language`
+      : isSpecific
+      ? "Criteria references a specific verifiable action"
+      : "Criteria should reference a specific action (e.g., 'announces', 'approves', 'publishes')",
+  });
+
+  // 5. No aggregate/cumulative language that creates disputes
+  const hasAggregate = /\b(total|combined|aggregate|cumulative|over \$\d+)\b/i.test(question + " " + criteria);
+  checks.push({
+    label: "No aggregate metrics",
+    passed: !hasAggregate,
+    detail: hasAggregate ? "Aggregate metrics (total, combined) are hard to verify and create disputes" : "No problematic aggregate language detected",
+  });
+
+  const passCount = checks.filter((c) => c.passed).length;
+  const score = Math.round((passCount / checks.length) * 100);
+
+  return { score, checks };
+}
+
+const CLARITY_THRESHOLD = 60; // Markets below this cannot be published
+
 function MarketBuilder() {
   const [question, setQuestion] = useState("");
   const [category, setCategory] = useState("womens-health");
@@ -307,11 +428,21 @@ function MarketBuilder() {
 
   const supabase = createClient();
 
+  // Resolution Clarity Score
+  const clarityResult = computeResolutionClarityScore(
+    question,
+    resolutionCriteria,
+    resolutionSources,
+    resolveDate
+  );
+  const clarityBlocked = clarityResult.score < CLARITY_THRESHOLD;
+
   const validationErrors: string[] = [];
   if (!question.trim()) validationErrors.push("Market question is required");
   if (!resolveDate) validationErrors.push("Resolve date is required");
   if (!resolutionSources.some((s) => s.trim())) validationErrors.push("At least one resolution source is required");
   if (!resolutionCriteria.trim()) validationErrors.push("Resolution criteria is required");
+  if (clarityBlocked && question.trim()) validationErrors.push(`Resolution clarity score ${clarityResult.score}% is below minimum ${CLARITY_THRESHOLD}%`);
 
   async function handleSaveDraft() {
     if (validationErrors.length > 0) return;
@@ -533,6 +664,50 @@ function MarketBuilder() {
             rows={4}
           />
         </div>
+
+        {/* Resolution Clarity Score */}
+        {question.trim() && (
+          <Card className={`${clarityBlocked ? "border-red-300 bg-red-50/30 dark:bg-red-950/10" : "border-green-300 bg-green-50/30 dark:bg-green-950/10"}`}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  {clarityBlocked ? (
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  )}
+                  Resolution Clarity Score
+                </CardTitle>
+                <Badge
+                  variant={clarityBlocked ? "destructive" : "default"}
+                  className="text-sm font-bold px-3"
+                >
+                  {clarityResult.score}%
+                </Badge>
+              </div>
+              {clarityBlocked && (
+                <p className="text-xs text-red-600 mt-1">
+                  Below {CLARITY_THRESHOLD}% threshold. Market cannot be published until criteria improve.
+                </p>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {clarityResult.checks.map((check, i) => (
+                <div key={i} className="flex items-start gap-2 text-xs">
+                  {check.passed ? (
+                    <CheckCircle className="h-3.5 w-3.5 text-green-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertTriangle className="h-3.5 w-3.5 text-red-400 shrink-0 mt-0.5" />
+                  )}
+                  <div>
+                    <span className="font-medium">{check.label}</span>
+                    <span className="text-muted-foreground ml-1">&mdash; {check.detail}</span>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Validation */}
         {validationErrors.length > 0 && (
