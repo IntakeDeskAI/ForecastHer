@@ -64,6 +64,7 @@ import {
   ArrowUpDown,
   ShieldAlert,
 } from "lucide-react";
+import { HowItWorks } from "@/components/how-it-works";
 
 // ── Sample Data ───────────────────────────────────────────────────────
 
@@ -1820,6 +1821,16 @@ export default function AIStudioPage() {
           Mode: Pre-launch
         </Badge>
       </div>
+
+      <HowItWorks
+        steps={[
+          "Generate: Pick a step (Trend Scan, Propose Markets, Generate Drafts, Compliance Check) or run the full pipeline. Configure platforms, risk level, and tone before running.",
+          "Prompts: View and edit AI prompt templates. Lock production prompts (padlock icon) to prevent accidental edits. Clone and test new versions before deploying.",
+          "Sources: Manage whitelisted domains (e.g., fda.gov, nature.com) and RSS feeds that AI uses for research. Add/remove sources and set reliability scores.",
+          "Guardrails: Toggle compliance switches that block non-compliant content — missing disclosure, missing citations, health advice, real money implications, etc.",
+          "Runs: View the log of all AI executions with status, duration, token usage, and output summary. Rerun any failed step from here.",
+        ]}
+      />
 
       <Tabs defaultValue="generate" className="space-y-4">
         <TabsList className="grid w-full grid-cols-5 h-9">

@@ -44,7 +44,9 @@ import {
   Plus,
   Hash,
   Sparkles,
+  Wand2,
 } from "lucide-react";
+import { HowItWorks } from "@/components/how-it-works";
 
 // ── Draft Queue Tab ──────────────────────────────────────────────────
 
@@ -228,6 +230,33 @@ function DraftEditor() {
   );
   const [utmLink, setUtmLink] = useState("");
   const [platform, setPlatform] = useState<Platform>("x");
+  const [marketTopic, setMarketTopic] = useState("");
+  const [generating, setGenerating] = useState(false);
+
+  function handleAIGenerate() {
+    if (!marketTopic.trim()) return;
+    setGenerating(true);
+    // Simulate AI generation — in production this calls the AI Studio API
+    setTimeout(() => {
+      const platformLabels: Record<Platform, string> = {
+        x: "X",
+        instagram: "Instagram",
+        tiktok: "TikTok",
+        linkedin: "LinkedIn",
+        email: "Email",
+      };
+      setHook(`${marketTopic.trim().replace(/\?$/, "")}? Here's what the data says.`);
+      setBody(
+        `The latest evidence points to a shift in ${marketTopic.toLowerCase().replace(/^will /i, "").replace(/\?$/, "")}.\n\nWe built a prediction market so you can weigh in — and track the outcome with real sources.\n\nWhat do you think the odds are?`
+      );
+      setCta(`Make your prediction at forcasther.com`);
+      setHashtags("#ForecastHer #WomensHealth #PredictionMarkets");
+      setFirstComment(`Sources and resolution criteria linked in bio. Follow for daily markets on women's health and femtech.`);
+      setDisclosureLine("Illustrative odds only. Not financial or medical advice. Play money beta.");
+      setUtmLink(`https://forcasther.com/?utm_source=${platform}&utm_medium=social&utm_campaign=market`);
+      setGenerating(false);
+    }, 1200);
+  }
 
   const complianceChecks = [
     { rule: "Disclosure present", passed: !!disclosureLine.trim(), detail: null },
@@ -255,6 +284,34 @@ function DraftEditor() {
             </SelectContent>
           </Select>
           <Badge variant="outline" className="text-xs">New Draft</Badge>
+        </div>
+
+        {/* AI Generate */}
+        <div className="rounded-lg border border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 p-3">
+          <div className="flex items-start gap-3">
+            <Wand2 className="h-4 w-4 text-purple-600 mt-1 shrink-0" />
+            <div className="flex-1 space-y-2">
+              <p className="text-xs font-semibold text-purple-900 dark:text-purple-300">AI Generate</p>
+              <Input
+                value={marketTopic}
+                onChange={(e) => setMarketTopic(e.target.value)}
+                placeholder="Enter a market question or topic..."
+                className="text-sm"
+              />
+              <Button
+                size="sm"
+                className="gradient-purple text-white text-xs gap-1"
+                disabled={!marketTopic.trim() || generating}
+                onClick={handleAIGenerate}
+              >
+                <Sparkles className="h-3 w-3" />
+                {generating ? "Generating..." : "Generate Draft"}
+              </Button>
+              <p className="text-[11px] text-muted-foreground">
+                Auto-fills hook, body, CTA, hashtags, disclosure, and UTM link for the selected platform.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -435,11 +492,42 @@ function AssetGenerator() {
   const [oddsLabel, setOddsLabel] = useState("beta_credits");
   const [resolveDate, setResolveDate] = useState("");
   const [categoryIcon, setCategoryIcon] = useState("womens-health");
+  const [autoFilling, setAutoFilling] = useState(false);
+
+  function handleAutoFill() {
+    setAutoFilling(true);
+    setTimeout(() => {
+      setMarketQuestion("Will a new non-hormonal menopause treatment receive full FDA approval in 2026?");
+      setOddsLabel("illustrative");
+      setResolveDate("2026-12-31");
+      setCategoryIcon("womens-health");
+      setAutoFilling(false);
+    }, 800);
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Inputs */}
       <div className="space-y-4">
+        <div className="rounded-lg border border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Wand2 className="h-4 w-4 text-purple-600" />
+            <span className="text-xs font-semibold text-purple-900 dark:text-purple-300">
+              Auto-fill from latest market in inbox
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs gap-1"
+            disabled={autoFilling}
+            onClick={handleAutoFill}
+          >
+            <Sparkles className="h-3 w-3" />
+            {autoFilling ? "Loading..." : "Auto-fill"}
+          </Button>
+        </div>
+
         <div className="space-y-2">
           <Label>Market Question</Label>
           <Textarea
@@ -536,9 +624,14 @@ const TEMPLATES = [
 function Templates() {
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Content templates with injectable variables. Each accepts the style guide as context.
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Content templates with injectable variables. Each accepts the style guide as context.
+        </p>
+        <Button size="sm" className="gradient-purple text-white text-xs gap-1">
+          <Wand2 className="h-3 w-3" /> AI Generate Template
+        </Button>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {TEMPLATES.map((t) => (
           <Card key={t.name}>
@@ -570,6 +663,23 @@ function Templates() {
 
 // ── Style Guide Tab ──────────────────────────────────────────────────
 
+function StyleGuideAIBanner() {
+  return (
+    <div className="rounded-lg border border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 p-3 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <Wand2 className="h-4 w-4 text-purple-600" />
+        <div>
+          <p className="text-xs font-semibold text-purple-900 dark:text-purple-300">AI Suggest Rules</p>
+          <p className="text-[11px] text-muted-foreground">Analyze your existing posts and suggest style guide improvements.</p>
+        </div>
+      </div>
+      <Button size="sm" variant="outline" className="text-xs gap-1">
+        <Sparkles className="h-3 w-3" /> Suggest
+      </Button>
+    </div>
+  );
+}
+
 function StyleGuide() {
   const [forbiddenPhrases, setForbiddenPhrases] = useState(
     "guaranteed returns, proven results, medical advice, doctor recommended, cure, treatment plan, invest now, real money"
@@ -595,6 +705,8 @@ function StyleGuide() {
       <p className="text-sm text-muted-foreground">
         Editable rules fed into every AI content generation prompt.
       </p>
+
+      <StyleGuideAIBanner />
 
       {[
         { label: "Forbidden Phrases", value: forbiddenPhrases, setter: setForbiddenPhrases },
@@ -678,6 +790,16 @@ export default function ContentStudioPage() {
           Create, review, and approve content for all platforms.
         </p>
       </div>
+
+      <HowItWorks
+        steps={[
+          "Draft Queue: All AI-generated and manual drafts appear here. Filter by status or platform. Bulk-approve low-risk drafts or send them to the scheduler.",
+          "Editor: Write or edit a single draft. Pick a platform, write your hook/body/CTA, or click \"AI Generate\" to auto-fill fields. Check compliance, add citations, then approve and send to scheduler.",
+          "Asset Generator: Enter a market question and click \"Generate All\" to create social media card images (square, story, carousel, thumbnail, resolved badge).",
+          "Templates: View and edit content templates with injectable variables like {{market_question}}. These feed into AI generation.",
+          "Style Guide: Edit the rules (forbidden phrases, disclosure, tone, emoji, hashtags) that every AI prompt follows. Save after changes.",
+        ]}
+      />
 
       <Tabs defaultValue="queue">
         <TabsList>

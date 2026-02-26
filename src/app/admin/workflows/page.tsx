@@ -25,6 +25,7 @@ import {
   Workflow,
   Zap,
 } from "lucide-react";
+import { HowItWorks } from "@/components/how-it-works";
 
 const WORKFLOWS: (WorkflowDefinition & { steps_count: number; last_run?: WorkflowRun })[] = [
   {
@@ -165,6 +166,16 @@ export default function WorkflowsPage() {
           OpenClaw: Not Connected
         </Badge>
       </div>
+
+      <HowItWorks
+        steps={[
+          "Each workflow is an automated pipeline that runs on a cron schedule. Toggle workflows on/off with the lightning bolt icon, or click \"Run Now\" to execute immediately.",
+          "Market of the Day (8 AM daily): Scans trends, proposes markets, generates drafts for all platforms, runs compliance checks, and schedules or flags for review.",
+          "Weekly Digest (Mon 7 AM): Pulls analytics, selects top markets, drafts an email, and queues for review.",
+          "Trend Scan (6 AM daily): Scans X, Reddit, Google Trends, and RSS feeds for emerging topics in women's health and femtech.",
+          "Click \"Last 20 Runs\" on any workflow to see execution history, success/failure status, and duration.",
+        ]}
+      />
 
       <div className="space-y-4">
         {WORKFLOWS.map((w) => (

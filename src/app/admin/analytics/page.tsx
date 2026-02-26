@@ -23,6 +23,7 @@ import {
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
+import { HowItWorks } from "@/components/how-it-works";
 
 function Overview() {
   return (
@@ -178,6 +179,16 @@ export default function AnalyticsPage() {
           Track performance across platforms, content formats, and topics.
         </p>
       </div>
+
+      <HowItWorks
+        steps={[
+          "Overview: Check waitlist signups, click-through rates, and top posts at a glance. Charts populate once posts go live.",
+          "Attribution: See UTM breakdown showing which posts and platforms drive the most signups.",
+          "Creative: Compare performance across content formats (thread vs. single post) and asset templates (square vs. story card).",
+          "Topic: See which market categories and resolution posts perform best to guide future content.",
+          "Hook Leaderboard: Review the top and bottom 50 performing hooks. Use insights to improve future opening lines.",
+        ]}
+      />
 
       <Tabs defaultValue="overview">
         <TabsList>

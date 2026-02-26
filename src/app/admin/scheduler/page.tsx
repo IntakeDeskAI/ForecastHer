@@ -31,6 +31,7 @@ import {
   Key,
   Sparkles,
 } from "lucide-react";
+import { HowItWorks } from "@/components/how-it-works";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const PLATFORMS: Platform[] = ["x", "instagram", "tiktok", "linkedin", "email"];
@@ -411,6 +412,15 @@ export default function SchedulerPage() {
           Calendar and queue view for scheduled posts across all platforms.
         </p>
       </div>
+
+      <HowItWorks
+        steps={[
+          "Calendar: See the week at a glance — which platforms have posts on which days. Navigate with Prev/Today/Next.",
+          "Queue: Manage individual scheduled posts. Filter by status (scheduled, posted, failed, paused).",
+          "Failed posts show the failure reason, retry count, and whether it's a token issue. Click \"Retry\" to re-attempt or \"Fix Token\" to go to Settings.",
+          "Pause upcoming posts if you need to hold content. Resume when ready. Posted items show a link to view the live post.",
+        ]}
+      />
 
       <Tabs defaultValue="queue">
         <TabsList>
