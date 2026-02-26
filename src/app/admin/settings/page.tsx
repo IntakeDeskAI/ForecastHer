@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -16,129 +16,170 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
-import type { PlatformToken, AdminUser, AuditLogEntry, Platform } from "@/lib/types";
 import {
-  Key,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import type { Platform } from "@/lib/types";
+import {
   Users,
   ScrollText,
-  ShieldOff,
-  ExternalLink,
-  RefreshCw,
   AlertTriangle,
   Power,
-  Trash2,
+  ExternalLink,
   CheckCircle,
   XCircle,
-  Clock,
   Send,
-  Shield,
-  Wifi,
+  Loader2,
+  Trash2,
 } from "lucide-react";
 
-// ── Enhanced Token Data ─────────────────────────────────────────────
+// ── Types ───────────────────────────────────────────────────────────
 
-type EnhancedToken = PlatformToken & {
-  scopes_granted: string[];
-  last_successful_post: string | null;
-  token_expires_at: string | null;
-  connected_account: string | null;
-  health_status: "healthy" | "warning" | "error" | "disconnected";
-  health_detail: string;
-};
-
-const PLATFORM_TOKENS: EnhancedToken[] = [
-  {
-    platform: "x",
-    account_name: "Not connected",
-    status: "revoked",
-    last_used: null,
-    expires_at: null,
-    scopes_granted: [],
-    last_successful_post: null,
-    token_expires_at: null,
-    connected_account: null,
-    health_status: "disconnected",
-    health_detail: "No account connected. Connect to enable X posting.",
-  },
-  {
-    platform: "instagram",
-    account_name: "Not connected",
-    status: "revoked",
-    last_used: null,
-    expires_at: null,
-    scopes_granted: [],
-    last_successful_post: null,
-    token_expires_at: null,
-    connected_account: null,
-    health_status: "disconnected",
-    health_detail: "No account connected. Requires Facebook Business account.",
-  },
-  {
-    platform: "tiktok",
-    account_name: "Not connected",
-    status: "revoked",
-    last_used: null,
-    expires_at: null,
-    scopes_granted: [],
-    last_successful_post: null,
-    token_expires_at: null,
-    connected_account: null,
-    health_status: "disconnected",
-    health_detail: "No account connected. TikTok API requires creator account.",
-  },
-  {
-    platform: "linkedin",
-    account_name: "Not connected",
-    status: "revoked",
-    last_used: null,
-    expires_at: null,
-    scopes_granted: [],
-    last_successful_post: null,
-    token_expires_at: null,
-    connected_account: null,
-    health_status: "disconnected",
-    health_detail: "No account connected. Requires LinkedIn company page admin access.",
-  },
-  {
-    platform: "email",
-    account_name: "Not configured",
-    status: "revoked",
-    last_used: null,
-    expires_at: null,
-    scopes_granted: [],
-    last_successful_post: null,
-    token_expires_at: null,
-    connected_account: null,
-    health_status: "disconnected",
-    health_detail: "No email provider configured. Set up SendGrid, Resend, or Postmark.",
-  },
-];
-
-// Platform display config
-const PLATFORM_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  x: { label: "X (Twitter)", color: "bg-black text-white", icon: "X" },
-  instagram: { label: "Instagram", color: "bg-gradient-to-r from-purple-500 to-pink-500 text-white", icon: "IG" },
-  tiktok: { label: "TikTok", color: "bg-black text-white", icon: "TT" },
-  linkedin: { label: "LinkedIn", color: "bg-blue-600 text-white", icon: "in" },
-  email: { label: "Email", color: "bg-green-600 text-white", icon: "@" },
-};
-
-function HealthBadge({ status }: { status: EnhancedToken["health_status"] }) {
-  const config = {
-    healthy: { label: "Healthy", className: "bg-green-100 text-green-700 border-green-200" },
-    warning: { label: "Warning", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
-    error: { label: "Error", className: "bg-red-100 text-red-700 border-red-200" },
-    disconnected: { label: "Disconnected", className: "bg-gray-100 text-gray-500 border-gray-200" },
-  };
-  const c = config[status];
-  return <Badge variant="outline" className={`text-xs ${c.className}`}>{c.label}</Badge>;
+interface StoredToken {
+  platform: Platform;
+  api_key: string;
+  from_email: string | null;
+  from_name: string | null;
+  status: "active" | "expired" | "revoked";
+  connected_at: string;
 }
 
-function TokensTab() {
-  const [testingPlatform, setTestingPlatform] = useState<string | null>(null);
+// Platform display config
+const PLATFORM_CONFIG: Record<
+  Platform,
+  { label: string; color: string; icon: string; keyLabel: string; keyPlaceholder: string; helpText: string }
+> = {
+  x: {
+    label: "X (Twitter)",
+    color: "bg-black text-white",
+    icon: "X",
+    keyLabel: "API Bearer Token",
+    keyPlaceholder: "AAAA...",
+    helpText: "From your X Developer Portal app → Authentication → Bearer Token.",
+  },
+  instagram: {
+    label: "Instagram",
+    color: "bg-gradient-to-r from-purple-500 to-pink-500 text-white",
+    icon: "IG",
+    keyLabel: "Access Token",
+    keyPlaceholder: "IGQ...",
+    helpText: "Requires Facebook Business account. Generate a long-lived token from Graph API Explorer.",
+  },
+  tiktok: {
+    label: "TikTok",
+    color: "bg-black text-white",
+    icon: "TT",
+    keyLabel: "Access Token",
+    keyPlaceholder: "act.a1...",
+    helpText: "From TikTok Developer Portal → Manage apps → Sandbox/Production token.",
+  },
+  linkedin: {
+    label: "LinkedIn",
+    color: "bg-blue-600 text-white",
+    icon: "in",
+    keyLabel: "Access Token",
+    keyPlaceholder: "AQV...",
+    helpText: "Requires LinkedIn company page admin access. Generate from LinkedIn Developer Portal.",
+  },
+  email: {
+    label: "Email (Resend)",
+    color: "bg-green-600 text-white",
+    icon: "@",
+    keyLabel: "Resend API Key",
+    keyPlaceholder: "re_...",
+    helpText: "From resend.com → API Keys. We'll verify the key and check your domain status.",
+  },
+};
 
-  const connectedCount = PLATFORM_TOKENS.filter((t) => t.status !== "revoked").length;
+const ALL_PLATFORMS: Platform[] = ["x", "instagram", "tiktok", "linkedin", "email"];
+
+// ── Tokens Tab ──────────────────────────────────────────────────────
+
+function TokensTab() {
+  const [tokens, setTokens] = useState<StoredToken[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [connectPlatform, setConnectPlatform] = useState<Platform | null>(null);
+  const [testingPlatform, setTestingPlatform] = useState<Platform | null>(null);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  const fetchTokens = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/tokens");
+      if (res.ok) {
+        const data = await res.json();
+        setTokens(data.tokens ?? []);
+      }
+    } catch {
+      // Tokens table may not exist yet — that's fine
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTokens();
+  }, [fetchTokens]);
+
+  function getToken(platform: Platform): StoredToken | undefined {
+    return tokens.find((t) => t.platform === platform);
+  }
+
+  async function handleDisconnect(platform: Platform) {
+    try {
+      await fetch("/api/admin/tokens", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ platform }),
+      });
+      await fetchTokens();
+    } catch {
+      // ignore
+    }
+  }
+
+  async function handleTestPost(platform: Platform) {
+    const token = getToken(platform);
+    if (!token) return;
+
+    setTestingPlatform(platform);
+    setTestResult(null);
+    try {
+      const res = await fetch("/api/admin/tokens/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform,
+          api_key: token.api_key,
+          from_email: token.from_email,
+        }),
+      });
+      const data = await res.json();
+      setTestResult({
+        ok: res.ok && data.ok,
+        message: data.message || data.warning || data.error || "Unknown result",
+      });
+    } catch {
+      setTestResult({ ok: false, message: "Network error. Try again." });
+    } finally {
+      setTestingPlatform(null);
+    }
+  }
+
+  const connectedCount = tokens.filter((t) => t.status === "active").length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading tokens...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -157,139 +198,168 @@ function TokensTab() {
               : "border-green-200 bg-green-50 text-green-700"
           }`}
         >
-          {connectedCount}/{PLATFORM_TOKENS.length} connected
+          {connectedCount}/{ALL_PLATFORMS.length} connected
         </Badge>
       </div>
 
-      {/* Warning banner when nothing is connected */}
+      {/* Warning banner */}
       {connectedCount === 0 && (
-        <div className="rounded-lg border-2 border-amber-300 bg-amber-50/50 dark:bg-amber-950/20 p-4 flex items-start gap-3">
+        <div className="rounded-lg border-2 border-amber-300 bg-amber-50/50 p-4 flex items-start gap-3">
           <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">No platforms connected</p>
-            <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-              The system cannot post any content until at least one platform token is configured.
-              Connect a platform below to enable automated posting.
+            <p className="text-sm font-semibold text-amber-800">No platforms connected</p>
+            <p className="text-xs text-amber-700 mt-1">
+              Connect at least one platform below to enable posting.
             </p>
           </div>
         </div>
       )}
 
+      {/* Test result toast */}
+      {testResult && (
+        <div
+          className={`rounded-lg border p-3 flex items-start gap-2 text-sm ${
+            testResult.ok
+              ? "border-green-200 bg-green-50 text-green-800"
+              : "border-red-200 bg-red-50 text-red-800"
+          }`}
+        >
+          {testResult.ok ? (
+            <CheckCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          ) : (
+            <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          )}
+          <div className="flex-1">
+            <p className="text-xs">{testResult.message}</p>
+          </div>
+          <button
+            onClick={() => setTestResult(null)}
+            className="text-xs underline opacity-60 hover:opacity-100"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Token cards */}
       <div className="space-y-4">
-        {PLATFORM_TOKENS.map((token) => {
-          const cfg = PLATFORM_CONFIG[token.platform];
-          const isConnected = token.status !== "revoked";
-          const isTesting = testingPlatform === token.platform;
+        {ALL_PLATFORMS.map((platform) => {
+          const cfg = PLATFORM_CONFIG[platform];
+          const token = getToken(platform);
+          const isConnected = token?.status === "active";
+          const isTesting = testingPlatform === platform;
 
           return (
-            <Card
-              key={token.platform}
-              className={`${
-                !isConnected ? "border-dashed" : ""
-              }`}
-            >
+            <Card key={platform} className={!isConnected ? "border-dashed" : ""}>
               <CardContent className="p-5">
-                {/* Top row: platform info + health + actions */}
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-sm font-bold ${cfg.color}`}>
+                    <div
+                      className={`h-12 w-12 rounded-xl flex items-center justify-center text-sm font-bold ${cfg.color}`}
+                    >
                       {cfg.icon}
                     </div>
                     <div>
                       <p className="font-semibold text-sm">{cfg.label}</p>
-                      {token.connected_account ? (
+                      {isConnected ? (
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <CheckCircle className="h-3 w-3 text-green-500" />
-                          Connected as <span className="font-medium">{token.connected_account}</span>
+                          Connected
+                          {token.from_email && (
+                            <span className="ml-1">
+                              &middot; {token.from_email}
+                            </span>
+                          )}
                         </p>
                       ) : (
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <XCircle className="h-3 w-3 text-gray-400" />
-                          {token.account_name}
+                          Not connected
                         </p>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <HealthBadge status={token.health_status} />
-                    <Button variant="outline" size="sm" className="text-xs gap-1">
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ${
+                        isConnected
+                          ? "bg-green-100 text-green-700 border-green-200"
+                          : "bg-gray-100 text-gray-500 border-gray-200"
+                      }`}
+                    >
+                      {isConnected ? "Connected" : "Disconnected"}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs gap-1"
+                      onClick={() => setConnectPlatform(platform)}
+                    >
                       <ExternalLink className="h-3 w-3" />
                       {isConnected ? "Reauth" : "Connect"}
                     </Button>
                   </div>
                 </div>
 
-                {/* Detail grid - shown for all tokens */}
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                  <div>
-                    <span className="text-muted-foreground">Scopes granted</span>
-                    <p className="font-medium mt-0.5">
-                      {token.scopes_granted.length > 0 ? (
-                        <span className="text-green-600">{token.scopes_granted.join(", ")}</span>
-                      ) : (
-                        <span className="text-gray-400">None</span>
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Last successful post</span>
-                    <p className="font-medium mt-0.5">
-                      {token.last_successful_post ? (
-                        new Date(token.last_successful_post).toLocaleDateString()
-                      ) : (
-                        <span className="text-gray-400">Never</span>
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Token expires</span>
-                    <p className="font-medium mt-0.5">
-                      {token.token_expires_at ? (
-                        <span className={
-                          new Date(token.token_expires_at) < new Date()
-                            ? "text-red-600"
-                            : ""
-                        }>
-                          {new Date(token.token_expires_at).toLocaleDateString()}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">N/A</span>
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Status detail</span>
-                    <p className="font-medium mt-0.5 text-muted-foreground">{token.health_detail}</p>
-                  </div>
-                </div>
-
-                {/* Test post button */}
+                {/* Detail grid for connected tokens */}
                 {isConnected && (
-                  <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">
-                      Send a test to verify the connection works end-to-end.
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs gap-1"
-                      disabled={isTesting}
-                      onClick={() => {
-                        setTestingPlatform(token.platform);
-                        setTimeout(() => setTestingPlatform(null), 2000);
-                      }}
-                    >
-                      <Send className="h-3 w-3" />
-                      {isTesting ? "Testing..." : "Send Test Post"}
-                    </Button>
-                  </div>
+                  <>
+                    <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Connected</span>
+                        <p className="font-medium mt-0.5">
+                          {new Date(token.connected_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Key</span>
+                        <p className="font-medium mt-0.5 font-mono">
+                          {token.api_key.slice(0, 6)}...{token.api_key.slice(-4)}
+                        </p>
+                      </div>
+                      {token.from_name && (
+                        <div>
+                          <span className="text-muted-foreground">From name</span>
+                          <p className="font-medium mt-0.5">{token.from_name}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs gap-1"
+                          disabled={isTesting}
+                          onClick={() => handleTestPost(platform)}
+                        >
+                          {isTesting ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Send className="h-3 w-3" />
+                          )}
+                          {isTesting ? "Testing..." : "Test Connection"}
+                        </Button>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-destructive hover:text-destructive gap-1"
+                        onClick={() => handleDisconnect(platform)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Disconnect
+                      </Button>
+                    </div>
+                  </>
                 )}
 
-                {/* Connect CTA for disconnected */}
+                {/* Help text for disconnected */}
                 {!isConnected && (
                   <div className="mt-4 pt-3 border-t border-dashed border-border">
-                    <p className="text-xs text-muted-foreground">{token.health_detail}</p>
+                    <p className="text-xs text-muted-foreground">{cfg.helpText}</p>
                   </div>
                 )}
               </CardContent>
@@ -297,7 +367,220 @@ function TokensTab() {
           );
         })}
       </div>
+
+      {/* Connect dialog */}
+      {connectPlatform && (
+        <ConnectDialog
+          platform={connectPlatform}
+          existingToken={getToken(connectPlatform)}
+          onClose={() => setConnectPlatform(null)}
+          onSaved={() => {
+            setConnectPlatform(null);
+            fetchTokens();
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+// ── Connect Dialog ──────────────────────────────────────────────────
+
+function ConnectDialog({
+  platform,
+  existingToken,
+  onClose,
+  onSaved,
+}: {
+  platform: Platform;
+  existingToken?: StoredToken;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const cfg = PLATFORM_CONFIG[platform];
+  const isEmail = platform === "email";
+
+  const [apiKey, setApiKey] = useState(existingToken?.api_key ?? "");
+  const [fromEmail, setFromEmail] = useState(existingToken?.from_email ?? "");
+  const [fromName, setFromName] = useState(existingToken?.from_name ?? "");
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
+  const [error, setError] = useState("");
+
+  async function handleTest() {
+    setTesting(true);
+    setTestResult(null);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/tokens/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform,
+          api_key: apiKey,
+          from_email: fromEmail || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setTestResult({
+          ok: true,
+          message: data.message || data.warning || "Connection verified.",
+        });
+      } else {
+        setTestResult({
+          ok: false,
+          message: data.error || "Verification failed.",
+        });
+      }
+    } catch {
+      setTestResult({ ok: false, message: "Network error." });
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  async function handleSave() {
+    if (!apiKey.trim()) {
+      setError("API key is required.");
+      return;
+    }
+    if (isEmail && !fromEmail.trim()) {
+      setError("From email is required for Resend.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/tokens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform,
+          api_key: apiKey.trim(),
+          from_email: fromEmail.trim() || null,
+          from_name: fromName.trim() || null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        onSaved();
+      } else {
+        setError(data.error || "Failed to save.");
+      }
+    } catch {
+      setError("Network error. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <span
+              className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold ${cfg.color}`}
+            >
+              {cfg.icon}
+            </span>
+            Connect {cfg.label}
+          </DialogTitle>
+          <DialogDescription>{cfg.helpText}</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div>
+            <Label className="text-sm font-medium">{cfg.keyLabel}</Label>
+            <Input
+              type="password"
+              placeholder={cfg.keyPlaceholder}
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              className="mt-1 font-mono text-sm"
+            />
+          </div>
+
+          {isEmail && (
+            <>
+              <div>
+                <Label className="text-sm font-medium">From email</Label>
+                <Input
+                  type="email"
+                  placeholder="hello@forcasther.com"
+                  value={fromEmail}
+                  onChange={(e) => setFromEmail(e.target.value)}
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Must match a verified domain in your Resend account.
+                </p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">
+                  From name <span className="text-muted-foreground font-normal">(optional)</span>
+                </Label>
+                <Input
+                  placeholder="ForecastHer"
+                  value={fromName}
+                  onChange={(e) => setFromName(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Test result */}
+          {testResult && (
+            <div
+              className={`rounded-lg border p-3 text-xs ${
+                testResult.ok
+                  ? "border-green-200 bg-green-50 text-green-800"
+                  : "border-red-200 bg-red-50 text-red-800"
+              }`}
+            >
+              {testResult.ok ? (
+                <CheckCircle className="h-3.5 w-3.5 inline mr-1.5" />
+              ) : (
+                <XCircle className="h-3.5 w-3.5 inline mr-1.5" />
+              )}
+              {testResult.message}
+            </div>
+          )}
+
+          {error && (
+            <p className="text-sm text-red-500">{error}</p>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleTest} disabled={!apiKey || testing}>
+            {testing ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Verifying...
+              </>
+            ) : (
+              "Test Connection"
+            )}
+          </Button>
+          <Button onClick={handleSave} disabled={!apiKey || saving}>
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Saving...
+              </>
+            ) : (
+              "Save & Connect"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
