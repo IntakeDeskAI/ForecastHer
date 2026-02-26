@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       }
       console.error("Waitlist insert error:", error);
       return NextResponse.json(
-        { error: "Something went wrong. Please try again.", detail: error.message, code: error.code },
+        { error: "Something went wrong. Please try again." },
         { status: 500 }
       );
     }
