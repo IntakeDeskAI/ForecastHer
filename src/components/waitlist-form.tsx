@@ -18,11 +18,9 @@ const EARLY_ACCESS_CAP = 500;
 interface WaitlistFormProps {
   /** Visual variant — "hero" uses purple gradient button, "dark" uses white-on-dark styling */
   variant?: "hero" | "dark";
-  /** Current waitlist count from server, used for credits messaging */
-  waitlistCount?: number;
 }
 
-export function WaitlistForm({ variant = "hero", waitlistCount = 0 }: WaitlistFormProps) {
+export function WaitlistForm({ variant = "hero" }: WaitlistFormProps) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -78,15 +76,9 @@ export function WaitlistForm({ variant = "hero", waitlistCount = 0 }: WaitlistFo
   }
 
   const isDark = variant === "dark";
-  const spotsLeft = Math.max(0, EARLY_ACCESS_CAP - waitlistCount);
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto space-y-3">
-      {spotsLeft > 0 && (
-        <p className={`text-xs text-center ${isDark ? "text-white/50" : "text-muted-foreground"}`}>
-          First {EARLY_ACCESS_CAP} get 1,000 beta credits + founding status. No cash value.
-        </p>
-      )}
       <Input
         type="email"
         placeholder="Your email"
