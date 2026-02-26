@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
+    const { email, phone } = await request.json();
 
     if (!email || typeof email !== "string") {
       return NextResponse.json({ error: "Email is required." }, { status: 400 });
@@ -14,10 +14,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please enter a valid email." }, { status: 400 });
     }
 
+    // Normalize phone to digits only; reject if provided but not 10 digits
+    const phoneDigits = typeof phone === "string" ? phone.replace(/\D/g, "") : "";
+    if (phoneDigits && phoneDigits.length !== 10) {
+      return NextResponse.json({ error: "Phone number must be 10 digits." }, { status: 400 });
+    }
+
     const supabase = createAdminClient();
 
     const { error } = await supabase.from("waitlist").insert({
       email: email.toLowerCase().trim(),
+      phone: phoneDigits || null,
     });
 
     if (error) {
