@@ -4,6 +4,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+/** Strip to digits, enforce 10-digit US format: (XXX) XXX-XXXX */
+function formatPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 10);
+  if (digits.length === 0) return "";
+  if (digits.length <= 3) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
 interface WaitlistFormProps {
   /** Visual variant — "hero" uses purple gradient button, "dark" uses white-on-dark styling */
   variant?: "hero" | "dark";
@@ -20,11 +29,19 @@ export function WaitlistForm({ variant = "hero" }: WaitlistFormProps) {
     setStatus("loading");
     setErrorMsg("");
 
+    // Validate phone if provided — must be a full 10-digit US number
+    const phoneDigits = phone.replace(/\D/g, "");
+    if (phone && phoneDigits.length !== 10) {
+      setErrorMsg("Please enter a full 10-digit phone number.");
+      setStatus("error");
+      return;
+    }
+
     try {
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), phone: phone.trim() || null }),
+        body: JSON.stringify({ email: email.trim(), phone: phoneDigits || null }),
       });
 
       if (!res.ok) {
@@ -64,9 +81,10 @@ export function WaitlistForm({ variant = "hero" }: WaitlistFormProps) {
       />
       <Input
         type="tel"
-        placeholder="Phone number (optional)"
+        placeholder="Phone number (optional) — (555) 123-4567"
         value={phone}
-        onChange={(e) => setPhone(e.target.value)}
+        onChange={(e) => setPhone(formatPhone(e.target.value))}
+        maxLength={14}
         className={isDark ? "bg-white/10 border-white/20 text-white placeholder:text-white/40" : "bg-white"}
       />
 
