@@ -91,7 +91,7 @@ export function TradePanel({ market, userId }: TradePanelProps) {
 
         {/* Amount Input */}
         <div>
-          <label className="text-sm text-muted-foreground mb-1.5 block">Amount (credits)</label>
+          <label className="text-sm text-muted-foreground mb-1.5 block">Amount (beta credits)</label>
           <div className="flex gap-2">
             <Input
               type="number"

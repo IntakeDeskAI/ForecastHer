@@ -136,7 +136,7 @@ export default function RootLayout({
                       name: "Is ForecastHer free to use?",
                       acceptedAnswer: {
                         "@type": "Answer",
-                        text: "Yes! Sign up for early access and receive 1,000 free credits plus founding member status. ForecastHer uses virtual credits — no real money is required to participate.",
+                        text: "Yes! Sign up for early access and receive 1,000 free beta credits plus founding member status. ForecastHer uses virtual beta credits — no real money is required to participate.",
                       },
                     },
                     {

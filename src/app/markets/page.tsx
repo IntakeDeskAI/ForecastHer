@@ -200,7 +200,7 @@ export default async function MarketsPage({
         Questions we plan to launch. Odds shown are illustrative.
       </p>
       <p className="text-xs text-muted-foreground/70 mb-8">
-        Real trading begins in beta with play-money credits.{" "}
+        Real trading begins in beta with play-money beta credits.{" "}
         <Link href="/how-it-works" className="underline hover:text-foreground">
           How resolution works
         </Link>

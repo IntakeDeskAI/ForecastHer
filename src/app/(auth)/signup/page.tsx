@@ -68,7 +68,7 @@ export default function SignupPage() {
               Welcome to ForecastHer!
             </h2>
             <p className="text-muted-foreground">
-              Check your email to confirm your account. You&apos;ll get <strong className="text-primary">1,000 free credits</strong> to start trading.
+              Check your email to confirm your account. You&apos;ll get <strong className="text-primary">1,000 free beta credits</strong> to start trading.
             </p>
             <Button
               className="gradient-purple text-white"
@@ -91,7 +91,7 @@ export default function SignupPage() {
             Join ForecastHer
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Get 1,000 free credits + founding member status
+            Get 1,000 free beta credits + founding member status
           </p>
         </CardHeader>
         <CardContent className="space-y-4">

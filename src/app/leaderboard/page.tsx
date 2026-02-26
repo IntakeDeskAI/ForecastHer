@@ -54,7 +54,7 @@ export default async function LeaderboardPage() {
           Top forecasters ranked by play-money profit.
         </p>
         <p className="text-xs text-muted-foreground/70 mb-8">
-          All profits are in free play-money credits. Rankings carry over when real-money trading launches.
+          All profits are in free play-money beta beta credits. Rankings carry over when real-money trading launches.
         </p>
 
         {/* Top 3 Podium */}
@@ -79,7 +79,7 @@ export default async function LeaderboardPage() {
                   </Avatar>
                   <p className="text-sm font-semibold truncate">{entry.username}</p>
                   <p className="text-lg font-bold text-green-600 mt-1">
-                    +{entry.total_profit.toFixed(0)} credits
+                    +{entry.total_profit.toFixed(0)} beta credits
                   </p>
                   <p className="text-xs text-muted-foreground">{entry.total_trades} trades</p>
                 </CardContent>
@@ -117,7 +117,7 @@ export default async function LeaderboardPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-bold text-green-600">
-                        +{entry.total_profit.toFixed(0)} credits
+                        +{entry.total_profit.toFixed(0)} beta credits
                       </p>
                       <p className="text-xs text-muted-foreground">{entry.total_trades} trades</p>
                     </div>

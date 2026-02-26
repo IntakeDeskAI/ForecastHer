@@ -73,7 +73,7 @@ const sampleMarkets: Market[] = [
     description: null,
     category: "femtech",
     resolution_criteria: "A peer-reviewed study reports >90% accuracy for an AI endometriosis diagnostic tool.",
-    resolution_source: null,
+    resolution_source: "PubMed / peer-reviewed journal",
     closes_at: "2026-12-31T00:00:00Z",
     resolves_at: "2027-01-15T00:00:00Z",
     resolution: null,
@@ -93,7 +93,7 @@ const sampleMarkets: Market[] = [
     description: null,
     category: "fertility",
     resolution_criteria: "Average cost tracked by FertilityIQ or similar drops below $8,000.",
-    resolution_source: null,
+    resolution_source: "FertilityIQ",
     closes_at: "2026-12-31T00:00:00Z",
     resolves_at: "2027-01-15T00:00:00Z",
     resolution: null,
@@ -144,12 +144,14 @@ const FAQ_ITEMS = [
   {
     question: "Is this real money?",
     answer:
-      "Not yet. Beta uses play-money credits. Real-money markets will only launch after required regulatory approvals.",
+      "Not yet. Beta uses play-money beta credits. Real-money markets will only launch after required regulatory approvals.",
   },
 ];
 
 export default async function HomePage() {
   let markets: Market[] = sampleMarkets;
+  let waitlistCount = 0;
+  let marketCount = 6; // fallback to sample count
 
   try {
     const supabase = await createClient();
@@ -164,6 +166,17 @@ export default async function HomePage() {
     if (data && data.length > 0) {
       markets = data;
     }
+
+    // Real counts for social proof
+    const { count: wlCount } = await supabase
+      .from("waitlist")
+      .select("*", { count: "exact", head: true });
+    if (wlCount !== null) waitlistCount = wlCount;
+
+    const { count: mktCount } = await supabase
+      .from("markets")
+      .select("*", { count: "exact", head: true });
+    if (mktCount !== null) marketCount = mktCount;
   } catch {
     // Use sample markets if DB isn't set up
   }
@@ -192,6 +205,15 @@ export default async function HomePage() {
             Trade on what&apos;s next in femtech, fertility, wellness, policy, and culture.
           </p>
 
+          {/* Real social proof */}
+          <div className="flex flex-wrap justify-center gap-4 text-xs text-muted-foreground mb-6">
+            {waitlistCount > 0 && (
+              <span><span className="font-bold text-foreground">{waitlistCount}</span> on the waitlist</span>
+            )}
+            <span><span className="font-bold text-foreground">{marketCount}</span> markets proposed</span>
+            <span>Every market has a named resolution source</span>
+          </div>
+
           {/* Inline waitlist form */}
           <div id="waitlist" className="mb-6">
             <WaitlistForm variant="hero" />
@@ -219,10 +241,12 @@ export default async function HomePage() {
       <section className="py-6 bg-white border-b border-border">
         <div className="mx-auto max-w-4xl px-4">
           <p className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            Trusted by early forecasters
+            {waitlistCount > 0
+              ? `${waitlistCount} people on the waitlist \u00b7 ${marketCount} markets proposed`
+              : `${marketCount} markets proposed \u00b7 Every market has a named source`}
           </p>
           <p className="text-center text-sm text-muted-foreground mb-4">
-            Pre-launch beta with play-money credits. Built for clear rules, clean sources, and transparent outcomes.
+            Pre-launch beta with play-money beta credits. Built for clear rules, clean sources, and transparent outcomes.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <a href="#waitlist">
@@ -390,7 +414,7 @@ export default async function HomePage() {
               you can audit.
             </p>
             <p className="text-muted-foreground leading-relaxed mb-6">
-              We&apos;re starting with play-money credits in beta. Real money comes later, only after
+              We&apos;re starting with play-money beta credits. Real money comes later, only after
               the proper approvals. The point right now is simple: build the most credible
               forecasting community for women-led topics on the internet.
             </p>
@@ -490,7 +514,7 @@ export default async function HomePage() {
             Get early access to the beta
           </h2>
           <p className="text-white/60 mb-8 max-w-md mx-auto">
-            Join the waitlist to get play-money credits, propose markets,
+            Join the waitlist to get beta credits, propose markets,
             and earn a founding badge.
           </p>
           <WaitlistForm variant="dark" />
