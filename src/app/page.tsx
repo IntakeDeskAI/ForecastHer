@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { MarketCard } from "@/components/market-card";
 import { WaitlistForm } from "@/components/waitlist-form";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Market } from "@/lib/types";
 
 // Sample markets — play-money previews spanning women's health, culture, policy, business, sports
@@ -167,8 +168,9 @@ export default async function HomePage() {
       markets = data;
     }
 
-    // Real counts for social proof
-    const { count: wlCount } = await supabase
+    // Real counts for social proof — use admin client to bypass RLS
+    const admin = createAdminClient();
+    const { count: wlCount } = await admin
       .from("waitlist")
       .select("*", { count: "exact", head: true });
     if (wlCount !== null) waitlistCount = wlCount;
