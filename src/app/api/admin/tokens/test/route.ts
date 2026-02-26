@@ -40,12 +40,23 @@ async function testResend(apiKey: string, fromEmail?: string) {
   try {
     const resend = new Resend(apiKey);
 
-    // Verify the key by fetching domains — if the key is invalid, this will throw
+    // Verify the key by fetching domains
     const { data, error } = await resend.domains.list();
 
+    // A "restricted to only send emails" error means the key IS valid,
+    // just a sending-only key that can't list domains.
     if (error) {
+      const msg = error.message ?? "";
+      if (msg.toLowerCase().includes("restricted") || msg.toLowerCase().includes("only send")) {
+        return NextResponse.json({
+          ok: true,
+          message: fromEmail
+            ? `Resend API key verified (sending-only). Emails will send from ${fromEmail}.`
+            : "Resend API key verified (sending-only).",
+        });
+      }
       return NextResponse.json(
-        { error: `Resend API error: ${error.message}` },
+        { error: `Resend API error: ${msg}` },
         { status: 400 }
       );
     }
