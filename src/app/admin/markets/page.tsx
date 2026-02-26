@@ -40,6 +40,7 @@ import {
   Search,
   Sparkles,
 } from "lucide-react";
+import { HowItWorks } from "@/components/how-it-works";
 
 // ── Market Inbox Tab ─────────────────────────────────────────────────
 
@@ -888,6 +889,15 @@ export default function AdminMarketsPage() {
           Manage market pipeline from suggestion to resolution.
         </p>
       </div>
+
+      <HowItWorks
+        steps={[
+          "Inbox: AI-proposed and community-suggested markets land here. Accept (checkmark), reject (X), or merge duplicates.",
+          "Builder: Create markets manually. Fill in question, criteria, sources, and resolve date. The Resolution Clarity Score must hit 60% before you can publish.",
+          "All Markets: View and manage every market. Filter by category or status. Resolve open markets as YES or NO when their date arrives.",
+          "Resolutions: Track markets nearing their resolve date. Click \"Verify\" to check outcomes against sources, then \"Gen Post\" to create a resolution post.",
+        ]}
+      />
 
       <Tabs defaultValue="inbox">
         <TabsList>

@@ -26,6 +26,7 @@ import {
   UserPlus,
   AlertTriangle,
 } from "lucide-react";
+import { HowItWorks } from "@/components/how-it-works";
 
 function Suggestions() {
   return (
@@ -105,6 +106,15 @@ export default function CommunityPage() {
           Manage suggestions, polls, referrals, and moderation.
         </p>
       </div>
+
+      <HowItWorks
+        steps={[
+          "Suggestions: Community-submitted market ideas land here with auto-tagging. Accept good ones to your market inbox, reject spam.",
+          "Votes: Create weekly polls to engage the community and surface what topics people care about most.",
+          "Referral Leaderboard: Track top referrers, manage rewards tiers, and flag suspicious patterns for fraud checks.",
+          "Moderation: Review flagged comments and use AI-suggested safe replies. \"Safe Replies Only\" mode is on by default to prevent liability.",
+        ]}
+      />
 
       <Tabs defaultValue="suggestions">
         <TabsList>

@@ -38,6 +38,7 @@ import {
   Loader2,
   Trash2,
 } from "lucide-react";
+import { HowItWorks } from "@/components/how-it-works";
 
 // ── Types ───────────────────────────────────────────────────────────
 
@@ -756,6 +757,15 @@ export default function AdminSettingsPage() {
           Tokens, users, audit log, and emergency controls.
         </p>
       </div>
+
+      <HowItWorks
+        steps={[
+          "Tokens: Connect platform API keys (X, Instagram, TikTok, LinkedIn, Resend email). Click \"Connect\", paste your key, then \"Test Connection\" to verify it works.",
+          "Users & Roles: Invite team members as Editor, Reviewer, or Analyst. Each role has different permissions — see the permissions table for details.",
+          "Audit Log: Every action (approvals, posts, workflow runs, token changes) is logged here for accountability and debugging.",
+          "Kill Switch: Emergency controls to instantly disable all automated posting globally or per-platform. \"Revoke All Tokens\" is a last resort that disconnects everything.",
+        ]}
+      />
 
       <Tabs defaultValue="tokens">
         <TabsList>

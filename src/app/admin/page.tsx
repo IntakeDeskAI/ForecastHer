@@ -34,6 +34,7 @@ import {
   CalendarCheck,
   BarChart3,
 } from "lucide-react";
+import { HowItWorks } from "@/components/how-it-works";
 
 // ── System State Detection ──────────────────────────────────────────
 
@@ -425,6 +426,16 @@ export default function CommandCenterPage() {
           {state.setupComplete ? "Operational" : "Setup Required"}
         </Badge>
       </div>
+
+      <HowItWorks
+        steps={[
+          "Check the status badge (top-right): green = operational, amber = setup needed.",
+          "Complete the Setup Checklist: connect a platform token, configure email, enable a workflow, and run your first trend scan.",
+          "Monitor the three operator blocks: Content Velocity (are we posting enough?), Compliance Score (are posts safe?), System Readiness (is everything connected?).",
+          "Review KPI cards for queue health, growth, risk flags, and upcoming posts.",
+          "Use Quick Actions (bottom) — they change based on what needs attention next.",
+        ]}
+      />
 
       {/* Setup Required Banner - takes over until complete */}
       {!state.setupComplete && <SetupRequiredBanner />}
