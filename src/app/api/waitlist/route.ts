@@ -39,7 +39,12 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ ok: true });
+    // Return total count so the client can show position-aware messaging
+    const { count } = await supabase
+      .from("waitlist")
+      .select("*", { count: "exact", head: true });
+
+    return NextResponse.json({ ok: true, position: count ?? 0 });
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
