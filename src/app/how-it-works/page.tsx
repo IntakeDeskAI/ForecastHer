@@ -99,7 +99,7 @@ export default function HowItWorksPage() {
           {[
             {
               q: "Is this real money?",
-              a: "ForecastHer currently uses play money credits. You start with 1,000 free credits when you sign up. We plan to introduce real-money trading in the future once we have the proper regulatory approvals.",
+              a: "ForecastHer currently uses play-money beta credits. You start with 1,000 free beta credits when you sign up. We plan to introduce real-money trading in the future once we have the proper regulatory approvals.",
             },
             {
               q: "How are prices determined?",
@@ -130,7 +130,7 @@ export default function HowItWorksPage() {
           Ready to test your forecasting edge?
         </h2>
         <p className="text-sm text-muted-foreground mb-6">
-          Sign up for free play-money credits and start building your track record.
+          Sign up for free beta credits and start building your track record.
         </p>
         <div className="flex gap-3 justify-center">
           <Link href="/signup">
