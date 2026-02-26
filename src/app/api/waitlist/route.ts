@@ -14,11 +14,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Please enter a valid email." }, { status: 400 });
     }
 
+    // Normalize phone to digits only; reject if provided but not 10 digits
+    const phoneDigits = typeof phone === "string" ? phone.replace(/\D/g, "") : "";
+    if (phoneDigits && phoneDigits.length !== 10) {
+      return NextResponse.json({ error: "Phone number must be 10 digits." }, { status: 400 });
+    }
+
     const supabase = await createClient();
 
     const { error } = await supabase.from("waitlist").insert({
       email: email.toLowerCase().trim(),
-      phone: phone || null,
+      phone: phoneDigits || null,
     });
 
     if (error) {
