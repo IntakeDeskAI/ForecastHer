@@ -225,7 +225,7 @@ export default async function HomePage() {
 
           {/* Inline waitlist form */}
           <div id="waitlist" className="mb-6">
-            <WaitlistForm variant="hero" waitlistCount={waitlistCount} />
+            <WaitlistForm variant="hero" />
           </div>
 
           <div className="flex flex-wrap gap-3 justify-center">
@@ -531,7 +531,7 @@ export default async function HomePage() {
               ? "First 500 members get 1,000 beta credits + founding status. No cash value."
               : "Join the waitlist to propose markets and earn a founding badge."}
           </p>
-          <WaitlistForm variant="dark" waitlistCount={waitlistCount} />
+          <WaitlistForm variant="dark" />
           <p className="text-white/40 text-xs mt-5">
             No spam. Just markets worth arguing about and resolving cleanly.
           </p>
