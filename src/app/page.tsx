@@ -207,18 +207,25 @@ export default async function HomePage() {
             Trade on what&apos;s next in femtech, fertility, wellness, policy, and culture.
           </p>
 
-          {/* Real social proof */}
-          <div className="flex flex-wrap justify-center gap-4 text-xs text-muted-foreground mb-6">
-            {waitlistCount > 0 && (
+          {/* Real social proof + credits counter */}
+          <div className="flex flex-wrap justify-center gap-4 text-xs text-muted-foreground mb-4">
+            {waitlistCount > 0 && waitlistCount < 500 && (
+              <span><span className="font-bold text-foreground">{waitlistCount} of 500</span> early-access spots claimed</span>
+            )}
+            {waitlistCount >= 500 && (
               <span><span className="font-bold text-foreground">{waitlistCount}</span> on the waitlist</span>
             )}
             <span><span className="font-bold text-foreground">{marketCount}</span> markets proposed</span>
-            <span>Every market has a named resolution source</span>
           </div>
+          {waitlistCount < 500 && (
+            <p className="text-xs text-muted-foreground mb-6">
+              First 500 members get 1,000 beta credits. No cash value.
+            </p>
+          )}
 
           {/* Inline waitlist form */}
           <div id="waitlist" className="mb-6">
-            <WaitlistForm variant="hero" />
+            <WaitlistForm variant="hero" waitlistCount={waitlistCount} />
           </div>
 
           <div className="flex flex-wrap gap-3 justify-center">
@@ -243,12 +250,16 @@ export default async function HomePage() {
       <section className="py-6 bg-white border-b border-border">
         <div className="mx-auto max-w-4xl px-4">
           <p className="text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            {waitlistCount > 0
-              ? `${waitlistCount} people on the waitlist \u00b7 ${marketCount} markets proposed`
-              : `${marketCount} markets proposed \u00b7 Every market has a named source`}
+            {waitlistCount > 0 && waitlistCount < 500
+              ? `${waitlistCount} of 500 early-access spots claimed \u00b7 ${marketCount} markets proposed`
+              : waitlistCount >= 500
+                ? `${waitlistCount} on the waitlist \u00b7 ${marketCount} markets proposed`
+                : `${marketCount} markets proposed \u00b7 Every market has a named source`}
           </p>
           <p className="text-center text-sm text-muted-foreground mb-4">
-            Pre-launch beta with play-money beta credits. Built for clear rules, clean sources, and transparent outcomes.
+            {waitlistCount < 500
+              ? "First 500 members get 1,000 beta credits. No cash value. Built for clear rules and transparent outcomes."
+              : "Pre-launch beta with play-money beta credits. Built for clear rules, clean sources, and transparent outcomes."}
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <a href="#waitlist">
@@ -516,10 +527,11 @@ export default async function HomePage() {
             Get early access to the beta
           </h2>
           <p className="text-white/60 mb-8 max-w-md mx-auto">
-            Join the waitlist to get beta credits, propose markets,
-            and earn a founding badge.
+            {waitlistCount < 500
+              ? "First 500 members get 1,000 beta credits + founding status. No cash value."
+              : "Join the waitlist to propose markets and earn a founding badge."}
           </p>
-          <WaitlistForm variant="dark" />
+          <WaitlistForm variant="dark" waitlistCount={waitlistCount} />
           <p className="text-white/40 text-xs mt-5">
             No spam. Just markets worth arguing about and resolving cleanly.
           </p>
