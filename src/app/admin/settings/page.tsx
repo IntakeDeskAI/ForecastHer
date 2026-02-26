@@ -159,18 +159,26 @@ function TokensTab() {
           from_email: token.from_email,
         }),
       });
-      const data = await res.json();
+
+      let data;
+      const contentType = res.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        data = { error: `Server returned ${res.status} (${res.statusText})` };
+      }
+
       setTestResults((prev) => ({
         ...prev,
         [platform]: {
-          ok: res.ok && data.ok,
+          ok: res.ok && !!data.ok,
           message: data.message || data.warning || data.error || "Unknown result",
         },
       }));
-    } catch {
+    } catch (err) {
       setTestResults((prev) => ({
         ...prev,
-        [platform]: { ok: false, message: "Network error. Try again." },
+        [platform]: { ok: false, message: err instanceof Error ? err.message : "Network error. Try again." },
       }));
     } finally {
       setTestingPlatform(null);
