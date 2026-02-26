@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MarketCard } from "@/components/market-card";
+import { WaitlistForm } from "@/components/waitlist-form";
 import { createClient } from "@/lib/supabase/server";
 import type { Market } from "@/lib/types";
 
@@ -191,13 +192,12 @@ export default async function HomePage() {
             Trade on what&apos;s next in femtech, fertility, wellness, policy, and culture.
           </p>
 
-          {/* Triple CTA row */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/signup">
-              <Button size="lg" className="gradient-purple text-white shadow-lg shadow-purple/30 hover:shadow-purple/50 transition-shadow text-base px-8">
-                Join the Waitlist
-              </Button>
-            </Link>
+          {/* Inline waitlist form */}
+          <div id="waitlist" className="mb-6">
+            <WaitlistForm variant="hero" />
+          </div>
+
+          <div className="flex flex-wrap gap-3 justify-center">
             <Link href="/markets">
               <Button size="lg" variant="outline" className="text-base px-8">
                 Browse Markets
@@ -209,10 +209,6 @@ export default async function HomePage() {
               </Button>
             </Link>
           </div>
-
-          <p className="text-sm text-muted-foreground/80 mt-5">
-            Start by browsing live market previews. Every market shows exactly how it will be resolved.
-          </p>
           <p className="text-xs text-muted-foreground/60 mt-2">
             Pre-launch beta. Play money. Real money later pending approvals.
           </p>
@@ -229,16 +225,16 @@ export default async function HomePage() {
             Pre-launch beta with play-money credits. Built for clear rules, clean sources, and transparent outcomes.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/signup">
+            <a href="#waitlist">
               <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/15 transition-colors">
                 Join the waitlist
               </span>
-            </Link>
-            <Link href="/signup">
+            </a>
+            <a href="#waitlist">
               <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-muted text-muted-foreground text-xs font-medium hover:bg-muted/80 transition-colors">
                 Request beta access
               </span>
-            </Link>
+            </a>
             <Link href="/how-it-works">
               <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-muted text-muted-foreground text-xs font-medium hover:bg-muted/80 transition-colors">
                 See how markets resolve
@@ -453,11 +449,11 @@ export default async function HomePage() {
               We&apos;re recruiting advisors in women&apos;s health and market design.
               Want to help set the standard?
             </p>
-            <Link href="/signup">
+            <a href="#waitlist">
               <Button className="gradient-purple text-white">
                 Apply to Advise
               </Button>
-            </Link>
+            </a>
           </div>
         </div>
       </section>
@@ -497,18 +493,7 @@ export default async function HomePage() {
             Join the waitlist to get play-money credits, propose markets,
             and earn a founding badge.
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/signup">
-              <Button size="lg" className="gradient-purple text-white text-base px-10 shadow-lg shadow-purple/30">
-                Join the Waitlist
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button size="lg" variant="outline" className="text-base px-8 text-white border-white/20 hover:bg-white/10">
-                Refer a Friend
-              </Button>
-            </Link>
-          </div>
+          <WaitlistForm variant="dark" />
           <p className="text-white/40 text-xs mt-5">
             No spam. Just markets worth arguing about and resolving cleanly.
           </p>

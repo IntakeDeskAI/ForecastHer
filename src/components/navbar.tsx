@@ -93,7 +93,7 @@ export function Navbar() {
                   Log in
                 </Button>
               </Link>
-              <Link href="/signup">
+              <Link href={isLanding ? "#waitlist" : "/#waitlist"}>
                 <Button size="sm" className="gradient-purple text-white">
                   Join Waitlist
                 </Button>
@@ -143,7 +143,7 @@ export function Navbar() {
                       Log in
                     </Button>
                   </Link>
-                  <Link href="/signup" onClick={() => setOpen(false)}>
+                  <Link href={isLanding ? "#waitlist" : "/#waitlist"} onClick={() => setOpen(false)}>
                     <Button className="w-full gradient-purple text-white">
                       Join Waitlist
                     </Button>
