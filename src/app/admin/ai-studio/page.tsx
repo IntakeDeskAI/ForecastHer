@@ -62,6 +62,7 @@ import {
   Star,
   TrendingUp,
   ArrowUpDown,
+  ShieldAlert,
 } from "lucide-react";
 
 // ── Sample Data ───────────────────────────────────────────────────────
@@ -517,6 +518,43 @@ const SAMPLE_RUNS: AIRunLog[] = [
 
 // ── Tab: Generate ─────────────────────────────────────────────────────
 
+// Threshold enforcement: compute rejection reasons for a candidate
+function getGuardrailViolations(candidate: MarketCandidate, config: GenerateConfig): string[] {
+  const violations: string[] = [];
+
+  // Source count check
+  if (candidate.sources_found.length < config.require_sources_min) {
+    violations.push(`Only ${candidate.sources_found.length} source(s) found — minimum is ${config.require_sources_min}`);
+  }
+
+  // Confidence check
+  if (candidate.confidence < config.confidence_min) {
+    violations.push(`Confidence ${(candidate.confidence * 100).toFixed(0)}% is below minimum ${(config.confidence_min * 100).toFixed(0)}%`);
+  }
+
+  // Risk ceiling check
+  const riskOrder: Record<string, number> = { low: 1, medium: 2, high: 3 };
+  if (riskOrder[candidate.risk_level] > riskOrder[config.risk_ceiling]) {
+    violations.push(`Risk level "${candidate.risk_level}" exceeds ceiling "${config.risk_ceiling}"`);
+  }
+
+  // Long resolution window detection (> 6 months)
+  const resolveDate = new Date(candidate.resolve_by);
+  const now = new Date();
+  const monthsAway = (resolveDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30);
+  if (monthsAway > 6) {
+    violations.push(`Long resolution window (${Math.round(monthsAway)} months) — aggregate metrics are hard to verify`);
+  }
+
+  // Aggregate metric detection
+  const aggregatePatterns = /\b(total|combined|aggregate|cumulative|over \$\d+M total)\b/i;
+  if (aggregatePatterns.test(candidate.question) || aggregatePatterns.test(candidate.resolution_criteria)) {
+    violations.push("Aggregate metric detected — requires owner override to proceed");
+  }
+
+  return violations;
+}
+
 function GenerateTab() {
   const [config, setConfig] = useState<GenerateConfig>({
     mode: "pre_launch",
@@ -533,6 +571,11 @@ function GenerateTab() {
   const [candidates, setCandidates] = useState<MarketCandidate[]>(SAMPLE_CANDIDATES);
   const [generating, setGenerating] = useState(false);
   const [expandedCandidate, setExpandedCandidate] = useState<string | null>(null);
+  const [showRejected, setShowRejected] = useState(true);
+
+  // Split candidates into passing and rejected
+  const passingCandidates = candidates.filter((c) => getGuardrailViolations(c, config).length === 0);
+  const rejectedCandidates = candidates.filter((c) => getGuardrailViolations(c, config).length > 0);
 
   return (
     <div className="space-y-6">
@@ -720,121 +763,242 @@ function GenerateTab() {
         </Button>
       </div>
 
-      {/* Candidates Output */}
+      {/* Passing Candidates */}
       {candidates.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Proposed Markets ({candidates.length})</CardTitle>
-              <Badge variant="outline" className="text-xs">Ranked by engagement</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {candidates.map((candidate) => {
-              const expanded = expandedCandidate === candidate.id;
-              return (
-                <div key={candidate.id} className="border border-border rounded-lg p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h4 className="font-medium text-sm">{candidate.question}</h4>
-                        <Badge variant={candidate.risk_level === "low" ? "default" : candidate.risk_level === "medium" ? "secondary" : "destructive"} className="text-xs">
-                          {candidate.risk_level}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">{candidate.category}</Badge>
-                      </div>
-                      <div className="flex gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
-                        <span>Confidence: {(candidate.confidence * 100).toFixed(0)}%</span>
-                        <span>Engagement: {candidate.engagement_score}</span>
-                        <span>Sources: {candidate.sources_found.length}</span>
-                        <span>Resolves: {candidate.resolve_by}</span>
-                      </div>
-                      {candidate.risk_flags.length > 0 && (
-                        <div className="flex gap-2 mt-2 flex-wrap">
-                          {candidate.risk_flags.map((flag, i) => (
-                            <Badge key={i} variant="outline" className="text-xs text-amber-600 border-amber-300">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
-                              {flag}
+        <>
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  Approved Candidates ({passingCandidates.length})
+                </CardTitle>
+                <Badge variant="outline" className="text-xs">Ranked by engagement</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {passingCandidates.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <ShieldAlert className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">All candidates were rejected by guardrails.</p>
+                  <p className="text-xs mt-1">Lower thresholds or generate more candidates.</p>
+                </div>
+              ) : (
+                passingCandidates.map((candidate) => {
+                  const expanded = expandedCandidate === candidate.id;
+                  return (
+                    <div key={candidate.id} className="border border-border rounded-lg p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h4 className="font-medium text-sm">{candidate.question}</h4>
+                            <Badge variant={candidate.risk_level === "low" ? "default" : candidate.risk_level === "medium" ? "secondary" : "destructive"} className="text-xs">
+                              {candidate.risk_level}
                             </Badge>
-                          ))}
+                            <Badge variant="outline" className="text-xs">{candidate.category}</Badge>
+                          </div>
+                          <div className="flex gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
+                            <span>Confidence: {(candidate.confidence * 100).toFixed(0)}%</span>
+                            <span>Engagement: {candidate.engagement_score}</span>
+                            <span>Sources: {candidate.sources_found.length}</span>
+                            <span>Resolves: {candidate.resolve_by}</span>
+                          </div>
+                          {candidate.risk_flags.length > 0 && (
+                            <div className="flex gap-2 mt-2 flex-wrap">
+                              {candidate.risk_flags.map((flag, i) => (
+                                <Badge key={i} variant="outline" className="text-xs text-amber-600 border-amber-300">
+                                  <AlertTriangle className="h-3 w-3 mr-1" />
+                                  {flag}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <Button
+                            size="sm"
+                            variant={candidate.status === "accepted" ? "default" : "outline"}
+                            className="text-xs"
+                            onClick={() => {
+                              setCandidates(candidates.map((c) =>
+                                c.id === candidate.id
+                                  ? { ...c, status: c.status === "accepted" ? "proposed" : "accepted" }
+                                  : c
+                              ));
+                            }}
+                          >
+                            {candidate.status === "accepted" ? <CheckCircle className="h-3 w-3 mr-1" /> : null}
+                            {candidate.status === "accepted" ? "Selected" : "Select"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setExpandedCandidate(expanded ? null : candidate.id)}
+                          >
+                            {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {expanded && (
+                        <div className="mt-4 pt-4 border-t border-border space-y-3">
+                          <div>
+                            <Label className="text-xs font-medium">Resolution Criteria</Label>
+                            <p className="text-xs text-muted-foreground mt-1">{candidate.resolution_criteria}</p>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div>
+                              <Label className="text-xs font-medium text-green-600">Why Yes</Label>
+                              <p className="text-xs text-muted-foreground mt-1">{candidate.why_yes}</p>
+                            </div>
+                            <div>
+                              <Label className="text-xs font-medium text-red-600">Why No</Label>
+                              <p className="text-xs text-muted-foreground mt-1">{candidate.why_no}</p>
+                            </div>
+                            <div>
+                              <Label className="text-xs font-medium text-blue-600">What Changes</Label>
+                              <p className="text-xs text-muted-foreground mt-1">{candidate.what_changes}</p>
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Sources</Label>
+                            <div className="mt-1 space-y-1">
+                              {candidate.sources_found.map((src, i) => (
+                                <div key={i} className="flex items-center gap-2 text-xs">
+                                  <Badge variant="outline" className="text-xs">{(src.reliability_score * 100).toFixed(0)}%</Badge>
+                                  <span className="text-muted-foreground">{src.domain}</span>
+                                  <span className="truncate">{src.title}</span>
+                                  <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex gap-2 pt-2">
+                            <Button size="sm" className="text-xs gap-1">
+                              <Plus className="h-3 w-3" /> Create Market
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-xs gap-1">
+                              <Copy className="h-3 w-3" /> Copy Packet
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>
-                    <div className="flex gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        variant={candidate.status === "accepted" ? "default" : "outline"}
-                        className="text-xs"
-                        onClick={() => {
-                          setCandidates(candidates.map((c) =>
-                            c.id === candidate.id
-                              ? { ...c, status: c.status === "accepted" ? "proposed" : "accepted" }
-                              : c
-                          ));
-                        }}
-                      >
-                        {candidate.status === "accepted" ? <CheckCircle className="h-3 w-3 mr-1" /> : null}
-                        {candidate.status === "accepted" ? "Selected" : "Select"}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setExpandedCandidate(expanded ? null : candidate.id)}
-                      >
-                        {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                      </Button>
-                    </div>
-                  </div>
+                  );
+                })
+              )}
+            </CardContent>
+          </Card>
 
-                  {expanded && (
-                    <div className="mt-4 pt-4 border-t border-border space-y-3">
-                      <div>
-                        <Label className="text-xs font-medium">Resolution Criteria</Label>
-                        <p className="text-xs text-muted-foreground mt-1">{candidate.resolution_criteria}</p>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div>
-                          <Label className="text-xs font-medium text-green-600">Why Yes</Label>
-                          <p className="text-xs text-muted-foreground mt-1">{candidate.why_yes}</p>
-                        </div>
-                        <div>
-                          <Label className="text-xs font-medium text-red-600">Why No</Label>
-                          <p className="text-xs text-muted-foreground mt-1">{candidate.why_no}</p>
-                        </div>
-                        <div>
-                          <Label className="text-xs font-medium text-blue-600">What Changes</Label>
-                          <p className="text-xs text-muted-foreground mt-1">{candidate.what_changes}</p>
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="text-xs font-medium">Sources</Label>
-                        <div className="mt-1 space-y-1">
-                          {candidate.sources_found.map((src, i) => (
-                            <div key={i} className="flex items-center gap-2 text-xs">
-                              <Badge variant="outline" className="text-xs">{(src.reliability_score * 100).toFixed(0)}%</Badge>
-                              <span className="text-muted-foreground">{src.domain}</span>
-                              <span className="truncate">{src.title}</span>
-                              <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex gap-2 pt-2">
-                        <Button size="sm" className="text-xs gap-1">
-                          <Plus className="h-3 w-3" /> Create Market
-                        </Button>
-                        <Button size="sm" variant="outline" className="text-xs gap-1">
-                          <Copy className="h-3 w-3" /> Copy Packet
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+          {/* Rejected by Guardrails Section */}
+          {rejectedCandidates.length > 0 && (
+            <Card className="border-red-200 dark:border-red-900/50">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm flex items-center gap-2 text-red-600">
+                    <ShieldAlert className="h-4 w-4" />
+                    Rejected by Guardrails ({rejectedCandidates.length})
+                  </CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => setShowRejected(!showRejected)}
+                  >
+                    {showRejected ? "Hide" : "Show"}
+                  </Button>
                 </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+                <p className="text-xs text-muted-foreground">
+                  These candidates failed quality thresholds and cannot be selected for drafts.
+                </p>
+              </CardHeader>
+              {showRejected && (
+                <CardContent className="space-y-3">
+                  {rejectedCandidates.map((candidate) => {
+                    const violations = getGuardrailViolations(candidate, config);
+                    const expanded = expandedCandidate === candidate.id;
+                    const hasAggregateViolation = violations.some((v) => v.includes("owner override"));
+
+                    return (
+                      <div key={candidate.id} className="border border-red-200 dark:border-red-900/50 rounded-lg p-4 bg-red-50/30 dark:bg-red-950/10">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <h4 className="font-medium text-sm text-muted-foreground">{candidate.question}</h4>
+                              <Badge variant="destructive" className="text-xs">Blocked</Badge>
+                              <Badge variant="outline" className="text-xs">{candidate.category}</Badge>
+                            </div>
+                            {/* Violation reasons */}
+                            <div className="mt-2 space-y-1">
+                              {violations.map((violation, i) => (
+                                <div key={i} className="flex items-center gap-2 text-xs text-red-600">
+                                  <XCircle className="h-3 w-3 shrink-0" />
+                                  <span>{violation}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
+                              <span>Confidence: {(candidate.confidence * 100).toFixed(0)}%</span>
+                              <span>Sources: {candidate.sources_found.length}</span>
+                              <span>Resolves: {candidate.resolve_by}</span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            {hasAggregateViolation && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs border-amber-300 text-amber-700 hover:bg-amber-50"
+                                onClick={() => {
+                                  // Owner override: remove from rejected, add to passing
+                                  const overridden = { ...candidate, risk_flags: [...candidate.risk_flags, "Owner override applied"] };
+                                  setCandidates(candidates.map((c) => c.id === candidate.id ? overridden : c));
+                                }}
+                              >
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Owner Override
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => setExpandedCandidate(expanded ? null : candidate.id)}
+                            >
+                              {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {expanded && (
+                          <div className="mt-4 pt-4 border-t border-red-200 dark:border-red-900/50 space-y-3">
+                            <div>
+                              <Label className="text-xs font-medium">Resolution Criteria</Label>
+                              <p className="text-xs text-muted-foreground mt-1">{candidate.resolution_criteria}</p>
+                            </div>
+                            <div>
+                              <Label className="text-xs font-medium">Sources ({candidate.sources_found.length})</Label>
+                              <div className="mt-1 space-y-1">
+                                {candidate.sources_found.map((src, i) => (
+                                  <div key={i} className="flex items-center gap-2 text-xs">
+                                    <Badge variant="outline" className="text-xs">{(src.reliability_score * 100).toFixed(0)}%</Badge>
+                                    <span className="text-muted-foreground">{src.domain}</span>
+                                    <span className="truncate">{src.title}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              )}
+            </Card>
+          )}
+        </>
       )}
     </div>
   );

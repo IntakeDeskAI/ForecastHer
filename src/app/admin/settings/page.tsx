@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -27,60 +28,274 @@ import {
   AlertTriangle,
   Power,
   Trash2,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Send,
+  Shield,
+  Wifi,
 } from "lucide-react";
 
-// ── Tokens Tab ───────────────────────────────────────────────────────
+// ── Enhanced Token Data ─────────────────────────────────────────────
 
-const PLATFORM_TOKENS: PlatformToken[] = [
-  { platform: "x", account_name: "Not connected", status: "revoked", last_used: null, expires_at: null },
-  { platform: "instagram", account_name: "Not connected", status: "revoked", last_used: null, expires_at: null },
-  { platform: "tiktok", account_name: "Not connected", status: "revoked", last_used: null, expires_at: null },
-  { platform: "linkedin", account_name: "Not connected", status: "revoked", last_used: null, expires_at: null },
-  { platform: "email", account_name: "Not configured", status: "revoked", last_used: null, expires_at: null },
+type EnhancedToken = PlatformToken & {
+  scopes_granted: string[];
+  last_successful_post: string | null;
+  token_expires_at: string | null;
+  connected_account: string | null;
+  health_status: "healthy" | "warning" | "error" | "disconnected";
+  health_detail: string;
+};
+
+const PLATFORM_TOKENS: EnhancedToken[] = [
+  {
+    platform: "x",
+    account_name: "Not connected",
+    status: "revoked",
+    last_used: null,
+    expires_at: null,
+    scopes_granted: [],
+    last_successful_post: null,
+    token_expires_at: null,
+    connected_account: null,
+    health_status: "disconnected",
+    health_detail: "No account connected. Connect to enable X posting.",
+  },
+  {
+    platform: "instagram",
+    account_name: "Not connected",
+    status: "revoked",
+    last_used: null,
+    expires_at: null,
+    scopes_granted: [],
+    last_successful_post: null,
+    token_expires_at: null,
+    connected_account: null,
+    health_status: "disconnected",
+    health_detail: "No account connected. Requires Facebook Business account.",
+  },
+  {
+    platform: "tiktok",
+    account_name: "Not connected",
+    status: "revoked",
+    last_used: null,
+    expires_at: null,
+    scopes_granted: [],
+    last_successful_post: null,
+    token_expires_at: null,
+    connected_account: null,
+    health_status: "disconnected",
+    health_detail: "No account connected. TikTok API requires creator account.",
+  },
+  {
+    platform: "linkedin",
+    account_name: "Not connected",
+    status: "revoked",
+    last_used: null,
+    expires_at: null,
+    scopes_granted: [],
+    last_successful_post: null,
+    token_expires_at: null,
+    connected_account: null,
+    health_status: "disconnected",
+    health_detail: "No account connected. Requires LinkedIn company page admin access.",
+  },
+  {
+    platform: "email",
+    account_name: "Not configured",
+    status: "revoked",
+    last_used: null,
+    expires_at: null,
+    scopes_granted: [],
+    last_successful_post: null,
+    token_expires_at: null,
+    connected_account: null,
+    health_status: "disconnected",
+    health_detail: "No email provider configured. Set up SendGrid, Resend, or Postmark.",
+  },
 ];
 
+// Platform display config
+const PLATFORM_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
+  x: { label: "X (Twitter)", color: "bg-black text-white", icon: "X" },
+  instagram: { label: "Instagram", color: "bg-gradient-to-r from-purple-500 to-pink-500 text-white", icon: "IG" },
+  tiktok: { label: "TikTok", color: "bg-black text-white", icon: "TT" },
+  linkedin: { label: "LinkedIn", color: "bg-blue-600 text-white", icon: "in" },
+  email: { label: "Email", color: "bg-green-600 text-white", icon: "@" },
+};
+
+function HealthBadge({ status }: { status: EnhancedToken["health_status"] }) {
+  const config = {
+    healthy: { label: "Healthy", className: "bg-green-100 text-green-700 border-green-200" },
+    warning: { label: "Warning", className: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+    error: { label: "Error", className: "bg-red-100 text-red-700 border-red-200" },
+    disconnected: { label: "Disconnected", className: "bg-gray-100 text-gray-500 border-gray-200" },
+  };
+  const c = config[status];
+  return <Badge variant="outline" className={`text-xs ${c.className}`}>{c.label}</Badge>;
+}
+
 function TokensTab() {
+  const [testingPlatform, setTestingPlatform] = useState<string | null>(null);
+
+  const connectedCount = PLATFORM_TOKENS.filter((t) => t.status !== "revoked").length;
+
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Platform authentication tokens for automated posting.
-      </p>
-      <div className="space-y-3">
-        {PLATFORM_TOKENS.map((token) => (
-          <Card key={token.platform}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
-                    <Key className="h-5 w-5 text-muted-foreground" />
+      {/* Summary */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Platform authentication tokens for automated posting.
+        </p>
+        <Badge
+          variant="outline"
+          className={`text-xs ${
+            connectedCount === 0
+              ? "border-red-200 bg-red-50 text-red-600"
+              : connectedCount < 3
+              ? "border-yellow-200 bg-yellow-50 text-yellow-700"
+              : "border-green-200 bg-green-50 text-green-700"
+          }`}
+        >
+          {connectedCount}/{PLATFORM_TOKENS.length} connected
+        </Badge>
+      </div>
+
+      {/* Warning banner when nothing is connected */}
+      {connectedCount === 0 && (
+        <div className="rounded-lg border-2 border-amber-300 bg-amber-50/50 dark:bg-amber-950/20 p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">No platforms connected</p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+              The system cannot post any content until at least one platform token is configured.
+              Connect a platform below to enable automated posting.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Token cards */}
+      <div className="space-y-4">
+        {PLATFORM_TOKENS.map((token) => {
+          const cfg = PLATFORM_CONFIG[token.platform];
+          const isConnected = token.status !== "revoked";
+          const isTesting = testingPlatform === token.platform;
+
+          return (
+            <Card
+              key={token.platform}
+              className={`${
+                !isConnected ? "border-dashed" : ""
+              }`}
+            >
+              <CardContent className="p-5">
+                {/* Top row: platform info + health + actions */}
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`h-12 w-12 rounded-xl flex items-center justify-center text-sm font-bold ${cfg.color}`}>
+                      {cfg.icon}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm">{cfg.label}</p>
+                      {token.connected_account ? (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                          Connected as <span className="font-medium">{token.connected_account}</span>
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <XCircle className="h-3 w-3 text-gray-400" />
+                          {token.account_name}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <HealthBadge status={token.health_status} />
+                    <Button variant="outline" size="sm" className="text-xs gap-1">
+                      <ExternalLink className="h-3 w-3" />
+                      {isConnected ? "Reauth" : "Connect"}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Detail grid - shown for all tokens */}
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Scopes granted</span>
+                    <p className="font-medium mt-0.5">
+                      {token.scopes_granted.length > 0 ? (
+                        <span className="text-green-600">{token.scopes_granted.join(", ")}</span>
+                      ) : (
+                        <span className="text-gray-400">None</span>
+                      )}
+                    </p>
                   </div>
                   <div>
-                    <p className="font-medium text-sm capitalize">{token.platform === "x" ? "X (Twitter)" : token.platform}</p>
-                    <p className="text-xs text-muted-foreground">{token.account_name}</p>
+                    <span className="text-muted-foreground">Last successful post</span>
+                    <p className="font-medium mt-0.5">
+                      {token.last_successful_post ? (
+                        new Date(token.last_successful_post).toLocaleDateString()
+                      ) : (
+                        <span className="text-gray-400">Never</span>
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Token expires</span>
+                    <p className="font-medium mt-0.5">
+                      {token.token_expires_at ? (
+                        <span className={
+                          new Date(token.token_expires_at) < new Date()
+                            ? "text-red-600"
+                            : ""
+                        }>
+                          {new Date(token.token_expires_at).toLocaleDateString()}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">N/A</span>
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Status detail</span>
+                    <p className="font-medium mt-0.5 text-muted-foreground">{token.health_detail}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge
-                    variant="outline"
-                    className={`text-xs ${
-                      token.status === "active"
-                        ? "bg-green-100 text-green-700"
-                        : token.status === "expired"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-gray-100 text-gray-500"
-                    }`}
-                  >
-                    {token.status}
-                  </Badge>
-                  <Button variant="outline" size="sm" className="text-xs">
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    {token.status === "revoked" ? "Connect" : "Reauth"}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+
+                {/* Test post button */}
+                {isConnected && (
+                  <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      Send a test to verify the connection works end-to-end.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs gap-1"
+                      disabled={isTesting}
+                      onClick={() => {
+                        setTestingPlatform(token.platform);
+                        setTimeout(() => setTestingPlatform(null), 2000);
+                      }}
+                    >
+                      <Send className="h-3 w-3" />
+                      {isTesting ? "Testing..." : "Send Test Post"}
+                    </Button>
+                  </div>
+                )}
+
+                {/* Connect CTA for disconnected */}
+                {!isConnected && (
+                  <div className="mt-4 pt-3 border-t border-dashed border-border">
+                    <p className="text-xs text-muted-foreground">{token.health_detail}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
@@ -137,9 +352,9 @@ function UsersTab() {
                   {[row.owner, row.editor, row.reviewer, row.analyst].map((allowed, i) => (
                     <TableCell key={i} className="text-center">
                       {allowed ? (
-                        <span className="text-green-600 font-bold">✓</span>
+                        <span className="text-green-600 font-bold">&#10003;</span>
                       ) : (
-                        <span className="text-gray-300">—</span>
+                        <span className="text-gray-300">&mdash;</span>
                       )}
                     </TableCell>
                   ))}

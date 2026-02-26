@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import Link from "next/link";
 import {
   FileText,
   Eye,
@@ -19,9 +22,341 @@ import {
   CheckCircle,
   Pause,
   Play,
+  Key,
+  Mail,
+  Workflow,
+  Search,
+  ArrowRight,
+  XCircle,
+  Gauge,
+  Shield,
+  Wifi,
+  CalendarCheck,
+  BarChart3,
 } from "lucide-react";
 
-// Static placeholder data for dev mode
+// ── System State Detection ──────────────────────────────────────────
+
+// In production these would come from API/DB. For now, derive from static config.
+function getSystemState() {
+  const tokensConnected = 0; // No platform tokens configured
+  const emailConfigured = false;
+  const workflowsEnabled = 0; // No workflows active
+  const firstTrendScanRun = false; // No completed trend scans
+
+  const setupComplete =
+    tokensConnected > 0 &&
+    emailConfigured &&
+    workflowsEnabled > 0 &&
+    firstTrendScanRun;
+
+  return {
+    tokensConnected,
+    emailConfigured,
+    workflowsEnabled,
+    firstTrendScanRun,
+    setupComplete,
+    setupProgress: [tokensConnected > 0, emailConfigured, workflowsEnabled > 0, firstTrendScanRun].filter(Boolean).length,
+  };
+}
+
+// ── Setup Checklist ─────────────────────────────────────────────────
+
+const SETUP_STEPS = [
+  {
+    id: "tokens",
+    label: "Connect at least one platform token",
+    description: "Link your X, Instagram, TikTok, or LinkedIn account for automated posting.",
+    href: "/admin/settings",
+    linkLabel: "Go to Tokens",
+    check: (s: ReturnType<typeof getSystemState>) => s.tokensConnected > 0,
+  },
+  {
+    id: "email",
+    label: "Configure email provider",
+    description: "Set up your email service for weekly digests and notifications.",
+    href: "/admin/settings",
+    linkLabel: "Configure Email",
+    check: (s: ReturnType<typeof getSystemState>) => s.emailConfigured,
+  },
+  {
+    id: "workflows",
+    label: "Enable at least one workflow schedule",
+    description: "Activate Market of the Day, Weekly Digest, or Trend Scan automation.",
+    href: "/admin/workflows",
+    linkLabel: "Go to Workflows",
+    check: (s: ReturnType<typeof getSystemState>) => s.workflowsEnabled > 0,
+  },
+  {
+    id: "trend_scan",
+    label: "Run your first trend scan",
+    description: "Scan trends to populate your market inbox with AI-proposed questions.",
+    href: "/admin/ai-studio",
+    linkLabel: "Open AI Studio",
+    check: (s: ReturnType<typeof getSystemState>) => s.firstTrendScanRun,
+  },
+];
+
+function SetupRequiredBanner() {
+  const state = getSystemState();
+
+  return (
+    <Card className="border-2 border-amber-400 bg-amber-50/50 dark:bg-amber-950/20">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <CardTitle className="text-base font-bold">Setup Required</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Complete these steps before the system can operate.
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="text-2xl font-bold text-amber-600">{state.setupProgress}</span>
+            <span className="text-sm text-muted-foreground">/4</span>
+          </div>
+        </div>
+        <Progress value={(state.setupProgress / 4) * 100} className="mt-3 h-2" />
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {SETUP_STEPS.map((step) => {
+          const done = step.check(state);
+          return (
+            <div
+              key={step.id}
+              className={`flex items-center justify-between p-3 rounded-lg border ${
+                done
+                  ? "border-green-200 bg-green-50/50 dark:bg-green-950/20"
+                  : "border-amber-200 bg-white dark:bg-background"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {done ? (
+                  <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-amber-400 shrink-0" />
+                )}
+                <div>
+                  <p className={`text-sm font-medium ${done ? "line-through text-muted-foreground" : ""}`}>
+                    {step.label}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{step.description}</p>
+                </div>
+              </div>
+              {!done && (
+                <Link href={step.href}>
+                  <Button size="sm" variant="outline" className="text-xs gap-1 shrink-0">
+                    {step.linkLabel} <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </Link>
+              )}
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Operator Loop Blocks ────────────────────────────────────────────
+
+function ContentVelocityBlock() {
+  const scheduledThisWeek = 0;
+  const weeklyGoal = 14; // 2 per day
+  const pct = weeklyGoal > 0 ? Math.round((scheduledThisWeek / weeklyGoal) * 100) : 0;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <CalendarCheck className="h-4 w-4" /> Content Velocity
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-end justify-between">
+          <div>
+            <span className="text-3xl font-bold">{scheduledThisWeek}</span>
+            <span className="text-sm text-muted-foreground ml-1">/ {weeklyGoal}</span>
+          </div>
+          <span className="text-xs text-muted-foreground">posts this week</span>
+        </div>
+        <Progress value={pct} className="h-2" />
+        {scheduledThisWeek === 0 && (
+          <p className="text-xs text-amber-600 flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            No posts scheduled. Content pipeline is idle.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ComplianceScoreBlock() {
+  // In production: (drafts with citations + disclosure) / total drafts
+  const totalDrafts = 0;
+  const passingDrafts = 0;
+  const score = totalDrafts > 0 ? Math.round((passingDrafts / totalDrafts) * 100) : 100;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <Shield className="h-4 w-4" /> Compliance Score
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-end justify-between">
+          <div>
+            <span className={`text-3xl font-bold ${score >= 90 ? "text-green-600" : score >= 70 ? "text-amber-600" : "text-red-600"}`}>
+              {score}%
+            </span>
+          </div>
+          <span className="text-xs text-muted-foreground">citations + disclosure</span>
+        </div>
+        <Progress value={score} className="h-2" />
+        {totalDrafts === 0 && (
+          <p className="text-xs text-muted-foreground">No drafts to evaluate yet.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SystemReadinessBlock() {
+  const state = getSystemState();
+  const checks = [
+    { label: "Platform tokens", ok: state.tokensConnected > 0, detail: state.tokensConnected > 0 ? `${state.tokensConnected} connected` : "None connected" },
+    { label: "Email provider", ok: state.emailConfigured, detail: state.emailConfigured ? "Configured" : "Not configured" },
+    { label: "Workflows", ok: state.workflowsEnabled > 0, detail: state.workflowsEnabled > 0 ? `${state.workflowsEnabled} active` : "None active" },
+    { label: "Sources configured", ok: true, detail: "7 whitelisted domains" }, // From AI Studio sample data
+  ];
+  const readyCount = checks.filter((c) => c.ok).length;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <Wifi className="h-4 w-4" /> System Readiness
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {checks.map((check) => (
+          <div key={check.label} className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              {check.ok ? (
+                <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+              ) : (
+                <XCircle className="h-3.5 w-3.5 text-red-400" />
+              )}
+              <span>{check.label}</span>
+            </div>
+            <span className={`text-xs ${check.ok ? "text-muted-foreground" : "text-red-500 font-medium"}`}>
+              {check.detail}
+            </span>
+          </div>
+        ))}
+        <div className="pt-2 border-t border-border mt-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-medium">Overall</span>
+            <Badge variant={readyCount === checks.length ? "default" : "destructive"} className="text-xs">
+              {readyCount}/{checks.length} ready
+            </Badge>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Context-Aware Quick Actions ─────────────────────────────────────
+
+function ContextAwareActions() {
+  const state = getSystemState();
+
+  // Determine primary action based on system state
+  let primaryAction: { label: string; icon: React.ReactNode; href: string; description: string };
+  let secondaryActions: { label: string; icon: React.ReactNode; href: string }[];
+
+  if (state.tokensConnected === 0) {
+    primaryAction = {
+      label: "Connect a Platform",
+      icon: <Key className="h-4 w-4" />,
+      href: "/admin/settings",
+      description: "No tokens connected. Connect a platform to enable posting.",
+    };
+    secondaryActions = [
+      { label: "Run Trend Scan", icon: <Search className="h-4 w-4" />, href: "/admin/ai-studio" },
+      { label: "Configure Workflows", icon: <Workflow className="h-4 w-4" />, href: "/admin/workflows" },
+    ];
+  } else if (!state.firstTrendScanRun) {
+    primaryAction = {
+      label: "Run Trend Scan",
+      icon: <Search className="h-4 w-4" />,
+      href: "/admin/ai-studio",
+      description: "No markets yet. Run a trend scan to populate your inbox.",
+    };
+    secondaryActions = [
+      { label: "Configure Workflows", icon: <Workflow className="h-4 w-4" />, href: "/admin/workflows" },
+      { label: "Review Tokens", icon: <Key className="h-4 w-4" />, href: "/admin/settings" },
+    ];
+  } else {
+    // System is more set up - show operational actions
+    primaryAction = {
+      label: "Generate Today's Content",
+      icon: <Sparkles className="h-4 w-4" />,
+      href: "/admin/ai-studio",
+      description: "Generate market proposals and draft content for today.",
+    };
+    secondaryActions = [
+      { label: "Review & Schedule", icon: <CalendarCheck className="h-4 w-4" />, href: "/admin/content" },
+      { label: "Pause All Posting", icon: <Pause className="h-4 w-4" />, href: "/admin/settings" },
+      { label: "Run Weekly Digest", icon: <Play className="h-4 w-4" />, href: "/admin/workflows" },
+    ];
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {/* Primary action - prominent */}
+        <Link href={primaryAction.href}>
+          <div className="flex items-center gap-3 p-3 rounded-lg border-2 border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 hover:bg-purple-50 dark:hover:bg-purple-950/30 cursor-pointer transition-colors">
+            <div className="h-10 w-10 rounded-lg gradient-purple text-white flex items-center justify-center shrink-0">
+              {primaryAction.icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">{primaryAction.label}</p>
+              <p className="text-xs text-muted-foreground">{primaryAction.description}</p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+          </div>
+        </Link>
+
+        {/* Secondary actions */}
+        <div className="flex flex-wrap gap-2">
+          {secondaryActions.map((action) => (
+            <Link key={action.label} href={action.href}>
+              <Button variant="outline" size="sm" className="text-xs gap-1.5">
+                {action.icon}
+                {action.label}
+              </Button>
+            </Link>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── KPI Cards (unchanged data, same layout) ─────────────────────────
+
 const QUEUE_HEALTH = {
   drafts_ready: 0,
   awaiting_review: 0,
@@ -43,7 +378,7 @@ const RISK = {
 };
 
 const POSTING = {
-  next_post: { x: "—", instagram: "—", tiktok: "—", linkedin: "—" },
+  next_post: { x: "\u2014", instagram: "\u2014", tiktok: "\u2014", linkedin: "\u2014" },
   tokens_status: "not_configured" as const,
 };
 
@@ -61,23 +396,47 @@ const TIMELINE: {
   posts: { platform: string; title: string; status: string }[];
 }[] = [];
 
+// ── Main Page ───────────────────────────────────────────────────────
+
 export default function CommandCenterPage() {
+  const state = getSystemState();
+
   return (
     <div className="space-y-6">
+      {/* Header with honest status badge */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-serif text-2xl font-bold">Command Center</h1>
           <p className="text-sm text-muted-foreground">
-            System overview — answer &quot;is it working?&quot; in 10 seconds.
+            System overview &mdash; answer &quot;is it working?&quot; in 10 seconds.
           </p>
         </div>
-        <Badge variant="outline" className="text-xs">
-          <span className="mr-1.5 h-2 w-2 rounded-full bg-green-500 inline-block" />
-          Normal
+        <Badge
+          variant="outline"
+          className={`text-xs ${
+            state.setupComplete
+              ? ""
+              : "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+          }`}
+        >
+          <span className={`mr-1.5 h-2 w-2 rounded-full inline-block ${
+            state.setupComplete ? "bg-green-500" : "bg-amber-500 animate-pulse"
+          }`} />
+          {state.setupComplete ? "Operational" : "Setup Required"}
         </Badge>
       </div>
 
-      {/* Top row cards */}
+      {/* Setup Required Banner - takes over until complete */}
+      {!state.setupComplete && <SetupRequiredBanner />}
+
+      {/* Operator Loop: 3 new blocks */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <ContentVelocityBlock />
+        <ComplianceScoreBlock />
+        <SystemReadinessBlock />
+      </div>
+
+      {/* Original KPI row */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Queue Health */}
         <Card>
@@ -173,7 +532,14 @@ export default function CommandCenterPage() {
               </div>
             ))}
             <div className="pt-1">
-              <Badge variant="outline" className="text-xs w-full justify-center">
+              <Badge
+                variant="outline"
+                className={`text-xs w-full justify-center ${
+                  POSTING.tokens_status === "not_configured"
+                    ? "border-red-200 bg-red-50 text-red-600 dark:bg-red-950/20"
+                    : ""
+                }`}
+              >
                 Tokens: {POSTING.tokens_status === "not_configured" ? "Not configured" : "Active"}
               </Badge>
             </div>
@@ -222,10 +588,16 @@ export default function CommandCenterPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {ALERTS.length === 0 ? (
+            {ALERTS.length === 0 && state.setupComplete ? (
               <div className="text-center py-8 text-muted-foreground">
                 <CheckCircle className="h-8 w-8 mx-auto mb-3 opacity-50 text-green-500" />
                 <p className="text-sm">All clear. No active alerts.</p>
+              </div>
+            ) : ALERTS.length === 0 && !state.setupComplete ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <AlertTriangle className="h-8 w-8 mx-auto mb-3 opacity-50 text-amber-500" />
+                <p className="text-sm font-medium text-amber-600">System not operational</p>
+                <p className="text-xs mt-1">Complete setup checklist above to activate monitoring.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -251,32 +623,8 @@ export default function CommandCenterPage() {
         </Card>
       </div>
 
-      {/* Primary Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Button className="gradient-purple text-white" size="sm">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Generate Today Content
-            </Button>
-            <Button variant="outline" size="sm">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Approve Safe Drafts
-            </Button>
-            <Button variant="outline" size="sm">
-              <Pause className="h-4 w-4 mr-2" />
-              Pause All Posting
-            </Button>
-            <Button variant="outline" size="sm">
-              <Play className="h-4 w-4 mr-2" />
-              Run Weekly Digest Now
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Context-Aware Quick Actions */}
+      <ContextAwareActions />
     </div>
   );
 }
