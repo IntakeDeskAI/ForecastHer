@@ -24,6 +24,7 @@ import {
   X,
   Activity,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
   { href: "/admin/scheduler", label: "Scheduler", icon: Calendar },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/community", label: "Community", icon: Users },
+  { href: "/admin/ai-studio", label: "AI Studio", icon: Sparkles },
   { href: "/admin/workflows", label: "Workflows", icon: Workflow },
   { href: "/admin/settings", label: "Admin", icon: Settings },
 ];
