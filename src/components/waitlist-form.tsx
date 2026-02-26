@@ -46,7 +46,10 @@ export function WaitlistForm({ variant = "hero" }: WaitlistFormProps) {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Something went wrong. Please try again.");
+        const msg = data.detail
+          ? `${data.error} (${data.detail})`
+          : data.error || "Something went wrong. Please try again.";
+        throw new Error(msg);
       }
 
       setStatus("success");

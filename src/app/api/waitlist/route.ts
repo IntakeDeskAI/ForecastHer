@@ -33,7 +33,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "You're already on the waitlist!" }, { status: 409 });
       }
       console.error("Waitlist insert error:", error);
-      return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
+      return NextResponse.json(
+        { error: "Something went wrong. Please try again.", detail: error.message, code: error.code },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ ok: true });
