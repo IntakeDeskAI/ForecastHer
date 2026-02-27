@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,32 +33,100 @@ import {
   Wifi,
   CalendarCheck,
   BarChart3,
+  Loader2,
 } from "lucide-react";
 import { HowItWorks } from "@/components/how-it-works";
 
 // ── System State Detection ──────────────────────────────────────────
 
-// In production these would come from API/DB. For now, derive from static config.
-function getSystemState() {
-  const tokensConnected = 0; // No platform tokens configured
-  const emailConfigured = false;
-  const workflowsEnabled = 0; // No workflows active
-  const firstTrendScanRun = false; // No completed trend scans
+interface SystemState {
+  tokensConnected: number;
+  emailConfigured: boolean;
+  workflowsEnabled: number;
+  firstTrendScanRun: boolean;
+  setupComplete: boolean;
+  setupProgress: number;
+  loading: boolean;
+}
 
-  const setupComplete =
-    tokensConnected > 0 &&
-    emailConfigured &&
-    workflowsEnabled > 0 &&
-    firstTrendScanRun;
+const INITIAL_STATE: SystemState = {
+  tokensConnected: 0,
+  emailConfigured: false,
+  workflowsEnabled: 0,
+  firstTrendScanRun: false,
+  setupComplete: false,
+  setupProgress: 0,
+  loading: true,
+};
 
-  return {
-    tokensConnected,
-    emailConfigured,
-    workflowsEnabled,
-    firstTrendScanRun,
-    setupComplete,
-    setupProgress: [tokensConnected > 0, emailConfigured, workflowsEnabled > 0, firstTrendScanRun].filter(Boolean).length,
-  };
+// localStorage keys shared with workflows and AI studio pages
+const LS_WORKFLOWS_KEY = "fh_workflows_active_count";
+const LS_TREND_SCAN_KEY = "fh_first_trend_scan_run";
+
+function useSystemState(): SystemState {
+  const [state, setState] = useState<SystemState>(INITIAL_STATE);
+
+  const refresh = useCallback(async () => {
+    let tokensConnected = 0;
+    let emailConfigured = false;
+
+    // Fetch real token data from API
+    try {
+      const res = await fetch("/api/admin/tokens");
+      if (res.ok) {
+        const data = await res.json();
+        const tokens: { platform: string; status: string }[] = data.tokens ?? [];
+        const active = tokens.filter((t) => t.status === "active");
+        // Count social platform tokens (exclude email)
+        tokensConnected = active.filter((t) => t.platform !== "email").length;
+        // Check if email provider is configured
+        emailConfigured = active.some((t) => t.platform === "email");
+      }
+    } catch {
+      // API may be unreachable — fall back to defaults
+    }
+
+    // Check localStorage for workflow and trend scan state
+    let workflowsEnabled = 0;
+    let firstTrendScanRun = false;
+    try {
+      const wfCount = localStorage.getItem(LS_WORKFLOWS_KEY);
+      if (wfCount !== null) workflowsEnabled = parseInt(wfCount, 10) || 0;
+      firstTrendScanRun = localStorage.getItem(LS_TREND_SCAN_KEY) === "true";
+    } catch {
+      // localStorage may be unavailable
+    }
+
+    const setupComplete =
+      tokensConnected > 0 &&
+      emailConfigured &&
+      workflowsEnabled > 0 &&
+      firstTrendScanRun;
+
+    setState({
+      tokensConnected,
+      emailConfigured,
+      workflowsEnabled,
+      firstTrendScanRun,
+      setupComplete,
+      setupProgress: [tokensConnected > 0, emailConfigured, workflowsEnabled > 0, firstTrendScanRun].filter(Boolean).length,
+      loading: false,
+    });
+  }, []);
+
+  useEffect(() => {
+    refresh();
+    // Listen for storage events from other tabs/pages
+    function onStorage(e: StorageEvent) {
+      if (e.key === LS_WORKFLOWS_KEY || e.key === LS_TREND_SCAN_KEY) {
+        refresh();
+      }
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [refresh]);
+
+  return state;
 }
 
 // ── Setup Checklist ─────────────────────────────────────────────────
@@ -70,7 +138,7 @@ const SETUP_STEPS = [
     description: "Link your X, Instagram, TikTok, or LinkedIn account for automated posting.",
     href: "/admin/settings",
     linkLabel: "Go to Tokens",
-    check: (s: ReturnType<typeof getSystemState>) => s.tokensConnected > 0,
+    check: (s: SystemState) => s.tokensConnected > 0,
   },
   {
     id: "email",
@@ -78,7 +146,7 @@ const SETUP_STEPS = [
     description: "Set up your email service for weekly digests and notifications.",
     href: "/admin/settings",
     linkLabel: "Configure Email",
-    check: (s: ReturnType<typeof getSystemState>) => s.emailConfigured,
+    check: (s: SystemState) => s.emailConfigured,
   },
   {
     id: "workflows",
@@ -86,7 +154,7 @@ const SETUP_STEPS = [
     description: "Activate Market of the Day, Weekly Digest, or Trend Scan automation.",
     href: "/admin/workflows",
     linkLabel: "Go to Workflows",
-    check: (s: ReturnType<typeof getSystemState>) => s.workflowsEnabled > 0,
+    check: (s: SystemState) => s.workflowsEnabled > 0,
   },
   {
     id: "trend_scan",
@@ -94,12 +162,11 @@ const SETUP_STEPS = [
     description: "Scan trends to populate your market inbox with AI-proposed questions.",
     href: "/admin/ai-studio",
     linkLabel: "Open AI Studio",
-    check: (s: ReturnType<typeof getSystemState>) => s.firstTrendScanRun,
+    check: (s: SystemState) => s.firstTrendScanRun,
   },
 ];
 
-function SetupRequiredBanner() {
-  const state = getSystemState();
+function SetupRequiredBanner({ state }: { state: SystemState }) {
 
   return (
     <Card className="border-2 border-amber-400 bg-amber-50/50 dark:bg-amber-950/20">
@@ -228,8 +295,7 @@ function ComplianceScoreBlock() {
   );
 }
 
-function SystemReadinessBlock() {
-  const state = getSystemState();
+function SystemReadinessBlock({ state }: { state: SystemState }) {
   const checks = [
     { label: "Platform tokens", ok: state.tokensConnected > 0, detail: state.tokensConnected > 0 ? `${state.tokensConnected} connected` : "None connected" },
     { label: "Email provider", ok: state.emailConfigured, detail: state.emailConfigured ? "Configured" : "Not configured" },
@@ -276,8 +342,7 @@ function SystemReadinessBlock() {
 
 // ── Context-Aware Quick Actions ─────────────────────────────────────
 
-function ContextAwareActions() {
-  const state = getSystemState();
+function ContextAwareActions({ state }: { state: SystemState }) {
 
   // Determine primary action based on system state
   let primaryAction: { label: string; icon: React.ReactNode; href: string; description: string };
@@ -400,7 +465,7 @@ const TIMELINE: {
 // ── Main Page ───────────────────────────────────────────────────────
 
 export default function CommandCenterPage() {
-  const state = getSystemState();
+  const state = useSystemState();
 
   return (
     <div className="space-y-6">
@@ -412,19 +477,26 @@ export default function CommandCenterPage() {
             System overview &mdash; answer &quot;is it working?&quot; in 10 seconds.
           </p>
         </div>
-        <Badge
-          variant="outline"
-          className={`text-xs ${
-            state.setupComplete
-              ? ""
-              : "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
-          }`}
-        >
-          <span className={`mr-1.5 h-2 w-2 rounded-full inline-block ${
-            state.setupComplete ? "bg-green-500" : "bg-amber-500 animate-pulse"
-          }`} />
-          {state.setupComplete ? "Operational" : "Setup Required"}
-        </Badge>
+        {state.loading ? (
+          <Badge variant="outline" className="text-xs">
+            <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+            Checking...
+          </Badge>
+        ) : (
+          <Badge
+            variant="outline"
+            className={`text-xs ${
+              state.setupComplete
+                ? ""
+                : "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+            }`}
+          >
+            <span className={`mr-1.5 h-2 w-2 rounded-full inline-block ${
+              state.setupComplete ? "bg-green-500" : "bg-amber-500 animate-pulse"
+            }`} />
+            {state.setupComplete ? "Operational" : "Setup Required"}
+          </Badge>
+        )}
       </div>
 
       <HowItWorks
@@ -438,13 +510,13 @@ export default function CommandCenterPage() {
       />
 
       {/* Setup Required Banner - takes over until complete */}
-      {!state.setupComplete && <SetupRequiredBanner />}
+      {!state.loading && !state.setupComplete && <SetupRequiredBanner state={state} />}
 
       {/* Operator Loop: 3 new blocks */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <ContentVelocityBlock />
         <ComplianceScoreBlock />
-        <SystemReadinessBlock />
+        <SystemReadinessBlock state={state} />
       </div>
 
       {/* Original KPI row */}
@@ -635,7 +707,7 @@ export default function CommandCenterPage() {
       </div>
 
       {/* Context-Aware Quick Actions */}
-      <ContextAwareActions />
+      <ContextAwareActions state={state} />
     </div>
   );
 }
