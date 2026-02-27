@@ -25,10 +25,12 @@ import {
   Activity,
   AlertTriangle,
   Sparkles,
+  Rocket,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Command Center", icon: LayoutDashboard },
+  { href: "/admin/growth-ops", label: "Growth Ops", icon: Rocket },
   { href: "/admin/markets", label: "Markets", icon: TrendingUp },
   { href: "/admin/content", label: "Content Studio", icon: FileEdit },
   { href: "/admin/scheduler", label: "Scheduler", icon: Calendar },
