@@ -860,7 +860,7 @@ function ConnectDialog({
                   </div>
                   <Input
                     type="email"
-                    placeholder="hello@forcasther.com"
+                    placeholder="hello@forecasther.ai"
                     value={fromEmail}
                     onChange={(e) => setFromEmail(e.target.value)}
                     className="mt-1"
@@ -881,7 +881,7 @@ function ConnectDialog({
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-xs">
-                        The display name shown alongside the from email, e.g. &quot;ForecastHer &lt;hello@forcasther.com&gt;&quot;.
+                        The display name shown alongside the from email, e.g. &quot;ForecastHer &lt;hello@forecasther.ai&gt;&quot;.
                       </TooltipContent>
                     </Tooltip>
                   </div>

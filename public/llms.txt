@@ -10,7 +10,7 @@ ForecastHer is a prediction marketplace where women trade on outcomes that matte
 - **Focus Areas**: Women's health, fertility, menopause, femtech, wellness, beauty trends, and cultural moments
 - **Status**: Pre-launch (waitlist open, beta planned for 2026)
 - **Location**: Boise, Idaho
-- **Contact**: hello@forcasther.com
+- **Contact**: hello@forecasther.ai
 
 ## How It Works
 

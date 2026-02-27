@@ -113,10 +113,10 @@ export default function PrivacyPolicyPage() {
           <p className="mt-3">
             To make any of these requests, email us at{" "}
             <a
-              href="mailto:hello@forcasther.com"
+              href="mailto:hello@forecasther.ai"
               className="text-primary hover:underline"
             >
-              hello@forcasther.com
+              hello@forecasther.ai
             </a>
             .
           </p>
@@ -147,10 +147,10 @@ export default function PrivacyPolicyPage() {
           <p>
             Questions? Reach out at{" "}
             <a
-              href="mailto:hello@forcasther.com"
+              href="mailto:hello@forecasther.ai"
               className="text-primary hover:underline"
             >
-              hello@forcasther.com
+              hello@forecasther.ai
             </a>
             .
           </p>

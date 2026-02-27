@@ -39,10 +39,10 @@ export function Footer() {
 
           {/* Contact */}
           <a
-            href="mailto:hello@forcasther.com"
+            href="mailto:hello@forecasther.ai"
             className="text-purple text-sm hover:text-purple-light transition-colors"
           >
-            hello@forcasther.com
+            hello@forecasther.ai
           </a>
 
           {/* Legal */}

@@ -67,10 +67,10 @@ export default function TermsOfServicePage() {
             You may unsubscribe from these communications at any time by
             emailing{" "}
             <a
-              href="mailto:hello@forcasther.com"
+              href="mailto:hello@forecasther.ai"
               className="text-primary hover:underline"
             >
-              hello@forcasther.com
+              hello@forecasther.ai
             </a>
             .
           </p>
@@ -154,10 +154,10 @@ export default function TermsOfServicePage() {
           <p>
             Questions about these terms? Reach out at{" "}
             <a
-              href="mailto:hello@forcasther.com"
+              href="mailto:hello@forecasther.ai"
               className="text-primary hover:underline"
             >
-              hello@forcasther.com
+              hello@forecasther.ai
             </a>
             .
           </p>
