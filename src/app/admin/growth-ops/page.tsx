@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -169,19 +169,31 @@ interface CalendarDay {
   tasks: string[];
 }
 
-// Maps task keywords to admin page links
-const TASK_LINKS: { pattern: RegExp; href: string; label: string }[] = [
+// Maps task keywords to actions — either same-page tab switch or cross-page link
+interface TaskLink {
+  pattern: RegExp;
+  label: string;
+  // Same-page: switch tab within Growth Ops
+  tab?: string;
+  // Same-page: also set a channel filter or expand a specific script
+  scriptChannel?: string;
+  scriptId?: string;
+  // Cross-page: navigate to another admin page
+  href?: string;
+}
+
+const TASK_LINKS: TaskLink[] = [
   { pattern: /market preview cards|market cards/i, href: "/admin/content?tab=assets", label: "Asset Generator" },
-  { pattern: /scripts|script library/i, href: "/admin/growth-ops?tab=scripts", label: "Script Library" },
+  { pattern: /scripts|script library/i, tab: "scripts", label: "Script Library" },
   { pattern: /market of the day/i, href: "/admin/content?tab=editor", label: "Content Editor" },
-  { pattern: /weekly digest email/i, href: "/admin/growth-ops?tab=scripts", label: "Email Template" },
-  { pattern: /suggest a market.*thread/i, href: "/admin/growth-ops?tab=scripts", label: "Thread Template" },
-  { pattern: /reddit.*post|reddit.*value/i, href: "/admin/growth-ops?tab=scripts", label: "Reddit Template" },
-  { pattern: /outreach.*sprint|partner outreach|creator outreach|press outreach|collab/i, href: "/admin/growth-ops?tab=leads", label: "Leads & Outreach" },
-  { pattern: /dms|dm follow/i, href: "/admin/growth-ops?tab=leads", label: "Leads & Outreach" },
+  { pattern: /weekly digest email/i, tab: "scripts", scriptChannel: "email", scriptId: "s-9", label: "Email Template" },
+  { pattern: /suggest a market.*thread/i, tab: "scripts", scriptId: "s-5", label: "Thread Template" },
+  { pattern: /reddit.*post|reddit.*value/i, tab: "scripts", scriptChannel: "reddit", scriptId: "s-4", label: "Reddit Template" },
+  { pattern: /outreach.*sprint|partner outreach|creator outreach|press outreach|collab/i, tab: "leads", label: "Leads & Outreach" },
+  { pattern: /dms|dm follow/i, tab: "leads", label: "Leads & Outreach" },
   { pattern: /prep.*week|prep.*assets|prep.*markets/i, href: "/admin/ai-studio", label: "AI Studio" },
-  { pattern: /report|weekly report|monthly report|weekly metrics|month recap/i, href: "/admin/growth-ops?tab=reporting", label: "Reporting" },
-  { pattern: /update script library|best hooks/i, href: "/admin/growth-ops?tab=scripts", label: "Script Library" },
+  { pattern: /report|weekly report|monthly report|weekly metrics|month recap/i, tab: "reporting", label: "Reporting" },
+  { pattern: /update script library|best hooks/i, tab: "scripts", label: "Script Library" },
   { pattern: /analytics/i, href: "/admin/analytics", label: "Analytics" },
   { pattern: /x thread|week recap.*thread/i, href: "/admin/content?tab=editor", label: "Content Editor" },
   { pattern: /tiktok|clip for tiktok/i, href: "/admin/content?tab=assets", label: "Asset Generator" },
@@ -189,9 +201,9 @@ const TASK_LINKS: { pattern: RegExp; href: string; label: string }[] = [
   { pattern: /founding 500/i, href: "/admin/content?tab=assets", label: "Asset Generator" },
 ];
 
-function getTaskLink(task: string): { href: string; label: string } | null {
+function getTaskLink(task: string): TaskLink | null {
   for (const link of TASK_LINKS) {
-    if (link.pattern.test(task)) return { href: link.href, label: link.label };
+    if (link.pattern.test(task)) return link;
   }
   return null;
 }
@@ -583,7 +595,9 @@ const SEED_SCORECARDS: DailyScorecard[] = [];
    TAB 1: CALENDAR
    ═══════════════════════════════════════════════════════════════════════ */
 
-function CalendarTab() {
+function CalendarTab({ onNavigate }: {
+  onNavigate: (tab: string, opts?: { scriptChannel?: string; scriptId?: string }) => void;
+}) {
   const [expandedDay, setExpandedDay] = useState<number | null>(1);
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
 
@@ -683,7 +697,24 @@ function CalendarTab() {
                             <li key={i} className="flex items-start gap-2 text-sm">
                               <span className="text-xs font-mono text-muted-foreground mt-0.5 w-4 shrink-0">{i + 1}.</span>
                               <span className="flex-1">{task}</span>
-                              {link && (
+                              {link && link.tab && (
+                                <button
+                                  className="shrink-0"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onNavigate(link.tab!, {
+                                      scriptChannel: link.scriptChannel,
+                                      scriptId: link.scriptId,
+                                    });
+                                  }}
+                                >
+                                  <Badge variant="outline" className="text-[10px] gap-1 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-950/20">
+                                    <ExternalLink className="h-2.5 w-2.5" />
+                                    {link.label}
+                                  </Badge>
+                                </button>
+                              )}
+                              {link && link.href && (
                                 <Link href={link.href} className="shrink-0">
                                   <Badge variant="outline" className="text-[10px] gap-1 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-950/20">
                                     <ExternalLink className="h-2.5 w-2.5" />
@@ -1093,13 +1124,22 @@ interface AIDraftState {
   };
 }
 
-function ScriptLibraryTab() {
-  const [expandedScript, setExpandedScript] = useState<string | null>("s-1");
+function ScriptLibraryTab({ initialChannel, initialScriptId }: {
+  initialChannel?: string;
+  initialScriptId?: string;
+}) {
+  const [expandedScript, setExpandedScript] = useState<string | null>(initialScriptId ?? "s-1");
   const [copied, setCopied] = useState<string | null>(null);
-  const [filterChannel, setFilterChannel] = useState<string>("all");
+  const [filterChannel, setFilterChannel] = useState<string>(initialChannel ?? "all");
   const [aiDraft, setAiDraft] = useState<AIDraftState | null>(null);
   const [approvedDrafts, setApprovedDrafts] = useState<ApprovedDraft[]>([]);
   const [showApproved, setShowApproved] = useState(false);
+
+  // Update when navigated to from calendar deep links
+  useEffect(() => {
+    if (initialChannel) setFilterChannel(initialChannel);
+    if (initialScriptId) setExpandedScript(initialScriptId);
+  }, [initialChannel, initialScriptId]);
 
   function handleCopy(id: string, text: string) {
     navigator.clipboard.writeText(text);
@@ -1964,10 +2004,20 @@ export default function GrowthOpsPage() {
   const tabParam = searchParams.get("tab");
   const activeTab = VALID_TABS.includes(tabParam ?? "") ? tabParam! : "calendar";
 
+  // State for script deep-link navigation from calendar badges
+  const [scriptNav, setScriptNav] = useState<{ channel?: string; scriptId?: string }>({});
+
   function setActiveTab(tab: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", tab);
     router.replace(`?${params.toString()}`, { scroll: false });
+  }
+
+  function handleCalendarNavigate(tab: string, opts?: { scriptChannel?: string; scriptId?: string }) {
+    if (opts?.scriptChannel || opts?.scriptId) {
+      setScriptNav({ channel: opts.scriptChannel, scriptId: opts.scriptId });
+    }
+    setActiveTab(tab);
   }
 
   return (
@@ -1981,9 +2031,9 @@ export default function GrowthOpsPage() {
 
       <HowItWorks
         steps={[
-          "Calendar: View the full 30-day execution plan organized by week. Expand any day to see all tasks. The daily checklist at the bottom is the non-negotiable baseline.",
+          "Calendar: View the full 30-day execution plan organized by week. Expand any day to see all tasks. Click badges to jump to the relevant tool.",
           "Task Queue: Track every task with status, channel, UTM, and results. Log daily scorecards (posts, comments, DMs, signups) at the bottom.",
-          "Script Library: 9 reusable templates for every channel. Click to expand, copy the template, fill in variables. Notes have tactical tips for each format.",
+          "Script Library: Reusable templates for every channel. Click to expand, use AI Draft to auto-fill, then approve or edit. Copy to clipboard when ready.",
           "Leads & Outreach: Track founder, creator, podcast, newsletter, and press contacts. Update status as you contact them. Weekly targets are at the bottom.",
           "Reporting: Weekly and monthly metrics. UTM convention reference. 30-day targets with progress bars that update as you log scorecards.",
         ]}
@@ -1997,9 +2047,16 @@ export default function GrowthOpsPage() {
           <TabsTrigger value="leads">Leads &amp; Outreach</TabsTrigger>
           <TabsTrigger value="reporting">Reporting</TabsTrigger>
         </TabsList>
-        <TabsContent value="calendar" className="mt-4"><CalendarTab /></TabsContent>
+        <TabsContent value="calendar" className="mt-4">
+          <CalendarTab onNavigate={handleCalendarNavigate} />
+        </TabsContent>
         <TabsContent value="tasks" className="mt-4"><TaskQueueTab /></TabsContent>
-        <TabsContent value="scripts" className="mt-4"><ScriptLibraryTab /></TabsContent>
+        <TabsContent value="scripts" className="mt-4">
+          <ScriptLibraryTab
+            initialChannel={scriptNav.channel}
+            initialScriptId={scriptNav.scriptId}
+          />
+        </TabsContent>
         <TabsContent value="leads" className="mt-4"><LeadsTab /></TabsContent>
         <TabsContent value="reporting" className="mt-4"><ReportingTab /></TabsContent>
       </Tabs>
