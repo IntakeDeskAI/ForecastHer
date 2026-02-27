@@ -30,7 +30,7 @@ export default function TermsOfServicePage() {
             Agreement to Terms
           </h2>
           <p>
-            By accessing or using the ForecastHer website at forcasther.com
+            By accessing or using the ForecastHer website at forecasther.ai
             (&ldquo;the Site&rdquo;), you agree to be bound by these Terms of
             Service. If you do not agree with any part of these terms, please do
             not use the Site.

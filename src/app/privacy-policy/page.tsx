@@ -31,7 +31,7 @@ export default function PrivacyPolicyPage() {
             ForecastHer (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or
             &ldquo;our&rdquo;) respects your privacy. This Privacy Policy
             explains how we collect, use, and protect your information when you
-            visit forcasther.com and sign up for our waitlist.
+            visit forecasther.ai and sign up for our waitlist.
           </p>
         </section>
 

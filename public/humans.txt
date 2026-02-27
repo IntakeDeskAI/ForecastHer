@@ -1,7 +1,7 @@
 /* TEAM */
 Name: ForecastHer
 Location: Boise, ID, USA
-Site: https://forcasther.com
+Site: https://forecasther.ai
 
 /* THANKS */
 Built with Next.js, Supabase, Radix UI, and Tailwind CSS.

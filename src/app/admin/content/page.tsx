@@ -60,11 +60,11 @@ const QUICKSTART_DRAFTS: ContentDraft[] = [
     status: "needs_review",
     hook: "OTC birth control could be on shelves by summer. Here's what to watch.",
     body: "The FDA advisory committee voted in favor last month. A final decision is expected by July 2026. We built a prediction market so you can track the odds in real time.",
-    cta: "Make your prediction at forcasther.com",
+    cta: "Make your prediction at forecasther.ai",
     hashtags: ["#ForecastHer", "#WomensHealth", "#BirthControl"],
     first_comment: "Sources and resolution criteria linked in bio.",
     disclosure_line: "Illustrative odds only. Not financial or medical advice. Play money beta.",
-    utm_link: "https://forcasther.com/?utm_source=x&utm_medium=social&utm_campaign=otc-bc",
+    utm_link: "https://forecasther.ai/?utm_source=x&utm_medium=social&utm_campaign=otc-bc",
     confidence: 82,
     risk_level: "low",
     citations: [{ id: "c-1", source_url: "https://fda.gov", source_title: "FDA Advisory Board Minutes", summary: "Committee voted 17-1 in favor", fetched_at: "2026-02-25T10:00:00Z", is_stale: false }],
@@ -86,11 +86,11 @@ const QUICKSTART_DRAFTS: ContentDraft[] = [
     status: "new",
     hook: "Fertility benefits are exploding. Will 5+ major employers join this quarter?",
     body: "Amazon, Google, and Apple already cover egg freezing. The question is: will this wave hit 5+ new major employers by March 2026?",
-    cta: "Weigh in at forcasther.com",
+    cta: "Weigh in at forecasther.ai",
     hashtags: ["#ForecastHer", "#FertilityBenefits", "#FemTech"],
     first_comment: null,
     disclosure_line: "Illustrative odds only. Not financial or medical advice. Play money beta.",
-    utm_link: "https://forcasther.com/?utm_source=instagram&utm_medium=social",
+    utm_link: "https://forecasther.ai/?utm_source=instagram&utm_medium=social",
     confidence: 71,
     risk_level: "low",
     citations: [],
@@ -112,11 +112,11 @@ const QUICKSTART_DRAFTS: ContentDraft[] = [
     status: "new",
     hook: "Menopause startups are raising serious money. Will they cross $100M this year?",
     body: "Midi Health, Evernow, and Alloy have already raised $60M+ combined. The question: can the space reach $100M total by December?",
-    cta: "Track it live at forcasther.com",
+    cta: "Track it live at forecasther.ai",
     hashtags: ["#ForecastHer", "#Menopause", "#WomenInScience"],
     first_comment: "Thread incoming with the full breakdown.",
     disclosure_line: "Illustrative odds only. Not financial or medical advice. Play money beta.",
-    utm_link: "https://forcasther.com/?utm_source=x&utm_medium=social",
+    utm_link: "https://forecasther.ai/?utm_source=x&utm_medium=social",
     confidence: 65,
     risk_level: "medium",
     citations: [{ id: "c-2", source_url: "https://crunchbase.com", source_title: "Menopause Startups Funding Data", summary: "Tracking menopause-focused startup raises", fetched_at: "2026-02-25T10:00:00Z", is_stale: false }],
@@ -510,11 +510,11 @@ function DraftEditor() {
       setBody(
         `The latest evidence points to a shift in ${marketTopic.toLowerCase().replace(/^will /i, "").replace(/\?$/, "")}.\n\nWe built a prediction market so you can weigh in — and track the outcome with real sources.\n\nWhat do you think the odds are?`
       );
-      setCta(`Make your prediction at forcasther.com`);
+      setCta(`Make your prediction at forecasther.ai`);
       setHashtags("#ForecastHer #WomensHealth #PredictionMarkets");
       setFirstComment(`Sources and resolution criteria linked in bio. Follow for daily markets on women's health and femtech.`);
       setDisclosureLine("Illustrative odds only. Not financial or medical advice. Play money beta.");
-      setUtmLink(`https://forcasther.com/?utm_source=${platform}&utm_medium=social&utm_campaign=market`);
+      setUtmLink(`https://forecasther.ai/?utm_source=${platform}&utm_medium=social&utm_campaign=market`);
       setGenerating(false);
     }, 1200);
   }
@@ -604,7 +604,7 @@ function DraftEditor() {
             id="editor-cta"
             value={cta}
             onChange={(e) => setCta(e.target.value)}
-            placeholder="Join the waitlist at forcasther.com"
+            placeholder="Join the waitlist at forecasther.ai"
           />
         </div>
 
@@ -651,7 +651,7 @@ function DraftEditor() {
             id="editor-utm"
             value={utmLink}
             onChange={(e) => setUtmLink(e.target.value)}
-            placeholder="https://forcasther.com/?utm_source=x&utm_medium=social"
+            placeholder="https://forecasther.ai/?utm_source=x&utm_medium=social"
           />
         </div>
       </div>
@@ -950,7 +950,7 @@ function drawBrand(ctx: CanvasRenderingContext2D, x: number, y: number, size: nu
   ctx.fillText("ForecastHer", x, y);
   ctx.font = `${size * 0.45}px sans-serif`;
   ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.fillText("forcasther.com", x, y + size * 0.7);
+  ctx.fillText("forecasther.ai", x, y + size * 0.7);
 }
 
 function drawCategoryBadge(ctx: CanvasRenderingContext2D, label: string, x: number, y: number, size: number) {
@@ -1092,7 +1092,7 @@ function renderAsset(
     ctx.fillText("Make your prediction →", pad, h - pad - 40);
     ctx.font = "22px sans-serif";
     ctx.fillStyle = "rgba(255,255,255,0.4)";
-    ctx.fillText("forcasther.com", pad, h - pad);
+    ctx.fillText("forecasther.ai", pad, h - pad);
 
   } else if (spec.label === "Carousel P1") {
     // Similar to square but with "Swipe" CTA
@@ -1204,7 +1204,7 @@ function renderAsset(
     // Footer
     ctx.font = "22px sans-serif";
     ctx.fillStyle = "rgba(255,255,255,0.4)";
-    ctx.fillText("forcasther.com", pad, h - pad);
+    ctx.fillText("forecasther.ai", pad, h - pad);
   }
 
   return canvas.toDataURL("image/png");

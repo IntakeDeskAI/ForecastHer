@@ -53,7 +53,7 @@ Key rules:
 - Fill in ALL [bracketed variables] with real, specific content.
 - Do NOT include the brackets in the output.
 - Do NOT add extra sections or change the template structure.
-- For UTM links, use: forcasther.com/?utm_source=${channel}&utm_medium=social&utm_campaign=growth&utm_content=ai_draft
+- For UTM links, use: forecasther.ai/?utm_source=${channel}&utm_medium=social&utm_campaign=growth&utm_content=ai_draft
 - Keep the tone appropriate for the channel (X = punchy, LinkedIn = professional, IG = visual, TikTok = hook-driven, Reddit = community-first, DM = personal, Email = concise).`;
 
     const userPrompt = `Fill in this ${scriptName} template for the ${channel} channel.

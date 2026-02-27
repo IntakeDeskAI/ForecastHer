@@ -6,6 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://forcasther.com/sitemap.xml",
+    sitemap: "https://forecasther.ai/sitemap.xml",
   };
 }
