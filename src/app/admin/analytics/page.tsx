@@ -875,6 +875,19 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
+      {/* Demo data banner - honest and unmistakable */}
+      <div className="rounded-lg border-2 border-amber-400 bg-amber-50 p-4 flex items-start gap-3">
+        <BarChart3 className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-amber-800">Demo Data</p>
+          <p className="text-xs text-amber-700 mt-0.5">
+            All numbers on this page are sample data for layout demonstration only.
+            Real metrics will appear once platform tokens are connected and posts go live.
+            Do not use these numbers for any decisions.
+          </p>
+        </div>
+      </div>
+
       <HowItWorks
         steps={[
           "Overview: Check waitlist signups, click-through rates, and top posts at a glance. Charts populate once posts go live.",

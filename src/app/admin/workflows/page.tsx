@@ -25,6 +25,7 @@ import {
   Workflow,
   Zap,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { HowItWorks } from "@/components/how-it-works";
 
@@ -295,9 +296,21 @@ export default function WorkflowsPage() {
             OpenClaw-powered automation pipelines for content generation and market management.
           </p>
         </div>
-        <Badge variant="outline" className="text-xs">
+        <Badge variant="outline" className="text-xs border-amber-200 bg-amber-50 text-amber-700">
           OpenClaw: Not Connected
         </Badge>
+      </div>
+
+      {/* OpenClaw connection note */}
+      <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3 flex items-start gap-3">
+        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-amber-800">Workflows run in simulation mode</p>
+          <p className="text-xs text-amber-700 mt-0.5">
+            Until OpenClaw is connected, &quot;Run Now&quot; simulates execution locally. Activate workflows below to mark your setup complete —
+            they will execute automatically once OpenClaw is connected.
+          </p>
+        </div>
       </div>
 
       <HowItWorks

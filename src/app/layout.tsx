@@ -3,7 +3,7 @@ import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 
-const SITE_URL = "https://forcasther.com";
+const SITE_URL = "https://forecasther.ai";
 
 export const viewport: Viewport = {
   width: "device-width",

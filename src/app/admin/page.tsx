@@ -340,6 +340,106 @@ function SystemReadinessBlock({ state }: { state: SystemState }) {
   );
 }
 
+// ── Operator Daily Runbook ──────────────────────────────────────────
+
+function DailyRunbook({ state }: { state: SystemState }) {
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+
+  function toggle(id: string) {
+    setCheckedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  // Runbook changes based on setup state
+  const setupPhaseSteps = [
+    { id: "setup-tokens", label: "Connect platform tokens", href: "/admin/settings", done: state.tokensConnected > 0 },
+    { id: "setup-email", label: "Configure email provider (Resend)", href: "/admin/settings", done: state.emailConfigured },
+    { id: "setup-workflows", label: "Enable at least one workflow", href: "/admin/workflows", done: state.workflowsEnabled > 0 },
+    { id: "setup-trend", label: "Run your first trend scan", href: "/admin/ai-studio", done: state.firstTrendScanRun },
+  ];
+
+  const operationalSteps = [
+    { id: "op-trend", label: "Check market inbox for new AI suggestions", href: "/admin/markets" },
+    { id: "op-review", label: "Review and approve queued drafts", href: "/admin/content" },
+    { id: "op-schedule", label: "Confirm today's scheduled posts", href: "/admin/scheduler" },
+    { id: "op-exceptions", label: "Fix any compliance-blocked items", href: "/admin/content" },
+    { id: "op-analytics", label: "Review yesterday's post performance", href: "/admin/analytics" },
+  ];
+
+  const isSetupPhase = !state.setupComplete;
+  const completedCount = isSetupPhase
+    ? setupPhaseSteps.filter((s) => s.done).length
+    : checkedItems.size;
+  const totalCount = isSetupPhase ? setupPhaseSteps.length : operationalSteps.length;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            {isSetupPhase ? "Setup Runbook" : "Daily Operator Runbook"}
+          </CardTitle>
+          <span className="text-xs text-muted-foreground">
+            {completedCount}/{totalCount} done
+          </span>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-1.5">
+        {isSetupPhase ? (
+          setupPhaseSteps.map((step) => (
+            <Link key={step.id} href={step.href}>
+              <div className={`flex items-center gap-2.5 p-2 rounded-md text-sm transition-colors ${
+                step.done ? "text-muted-foreground" : "hover:bg-muted cursor-pointer"
+              }`}>
+                {step.done ? (
+                  <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                ) : (
+                  <div className="h-4 w-4 rounded-full border-2 border-amber-400 shrink-0" />
+                )}
+                <span className={step.done ? "line-through" : ""}>{step.label}</span>
+                {!step.done && <ArrowRight className="h-3 w-3 ml-auto text-muted-foreground" />}
+              </div>
+            </Link>
+          ))
+        ) : (
+          operationalSteps.map((step) => {
+            const checked = checkedItems.has(step.id);
+            return (
+              <div
+                key={step.id}
+                className={`flex items-center gap-2.5 p-2 rounded-md text-sm cursor-pointer transition-colors ${
+                  checked ? "text-muted-foreground" : "hover:bg-muted"
+                }`}
+                onClick={() => toggle(step.id)}
+              >
+                {checked ? (
+                  <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                ) : (
+                  <div className="h-4 w-4 rounded-full border-2 border-purple-400 shrink-0" />
+                )}
+                <span className={checked ? "line-through" : ""}>{step.label}</span>
+                <Link href={step.href} onClick={(e) => e.stopPropagation()} className="ml-auto">
+                  <ArrowRight className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                </Link>
+              </div>
+            );
+          })
+        )}
+        {!isSetupPhase && completedCount === totalCount && (
+          <div className="rounded-md bg-green-50 border border-green-200 p-2 text-center mt-2">
+            <p className="text-xs text-green-800 font-medium">All done for today!</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Context-Aware Quick Actions ─────────────────────────────────────
 
 function ContextAwareActions({ state }: { state: SystemState }) {
@@ -706,8 +806,11 @@ export default function CommandCenterPage() {
         </Card>
       </div>
 
-      {/* Context-Aware Quick Actions */}
-      <ContextAwareActions state={state} />
+      {/* Daily Runbook + Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DailyRunbook state={state} />
+        <ContextAwareActions state={state} />
+      </div>
     </div>
   );
 }

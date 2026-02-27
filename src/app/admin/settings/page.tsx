@@ -240,19 +240,26 @@ function PlatformHowTo({ platform }: { platform: Platform }) {
 function TokensTab() {
   const [tokens, setTokens] = useState<StoredToken[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [connectPlatform, setConnectPlatform] = useState<Platform | null>(null);
   const [testingPlatform, setTestingPlatform] = useState<Platform | null>(null);
   const [testResults, setTestResults] = useState<Record<string, { ok: boolean; message: string }>>({});
 
   const fetchTokens = useCallback(async () => {
+    setFetchError(null);
     try {
       const res = await fetch("/api/admin/tokens");
       if (res.ok) {
         const data = await res.json();
         setTokens(data.tokens ?? []);
+      } else {
+        // Table may not exist yet — show empty state, not error
+        setTokens([]);
       }
     } catch {
-      // Tokens table may not exist yet — that's fine
+      // API unreachable — show empty state with hint
+      setFetchError("Could not reach the tokens API. The database table may not be set up yet. You can still configure tokens below.");
+      setTokens([]);
     } finally {
       setLoading(false);
     }
@@ -260,6 +267,9 @@ function TokensTab() {
 
   useEffect(() => {
     fetchTokens();
+    // Safety timeout: never spin forever
+    const timeout = setTimeout(() => setLoading(false), 5000);
+    return () => clearTimeout(timeout);
   }, [fetchTokens]);
 
   function getToken(platform: Platform): StoredToken | undefined {
@@ -326,7 +336,7 @@ function TokensTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading tokens...
+        <Loader2 className="h-5 w-5 animate-spin mr-2" /> Checking platform connections...
       </div>
     );
   }
@@ -334,6 +344,19 @@ function TokensTab() {
   return (
     <TooltipProvider>
       <div className="space-y-4">
+        {/* API error banner */}
+        {fetchError && (
+          <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3 flex items-start gap-2">
+            <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-blue-800">{fetchError}</p>
+              <Button variant="link" size="sm" className="h-auto p-0 text-xs text-blue-600" onClick={() => { setLoading(true); fetchTokens(); }}>
+                Retry
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Summary */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
@@ -837,7 +860,7 @@ function ConnectDialog({
                   </div>
                   <Input
                     type="email"
-                    placeholder="hello@forcasther.com"
+                    placeholder="hello@forecasther.ai"
                     value={fromEmail}
                     onChange={(e) => setFromEmail(e.target.value)}
                     className="mt-1"
@@ -858,7 +881,7 @@ function ConnectDialog({
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-xs">
-                        The display name shown alongside the from email, e.g. &quot;ForecastHer &lt;hello@forcasther.com&gt;&quot;.
+                        The display name shown alongside the from email, e.g. &quot;ForecastHer &lt;hello@forecasther.ai&gt;&quot;.
                       </TooltipContent>
                     </Tooltip>
                   </div>

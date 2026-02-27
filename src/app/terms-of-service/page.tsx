@@ -30,7 +30,7 @@ export default function TermsOfServicePage() {
             Agreement to Terms
           </h2>
           <p>
-            By accessing or using the ForecastHer website at forcasther.com
+            By accessing or using the ForecastHer website at forecasther.ai
             (&ldquo;the Site&rdquo;), you agree to be bound by these Terms of
             Service. If you do not agree with any part of these terms, please do
             not use the Site.
@@ -67,10 +67,10 @@ export default function TermsOfServicePage() {
             You may unsubscribe from these communications at any time by
             emailing{" "}
             <a
-              href="mailto:hello@forcasther.com"
+              href="mailto:hello@forecasther.ai"
               className="text-primary hover:underline"
             >
-              hello@forcasther.com
+              hello@forecasther.ai
             </a>
             .
           </p>
@@ -154,10 +154,10 @@ export default function TermsOfServicePage() {
           <p>
             Questions about these terms? Reach out at{" "}
             <a
-              href="mailto:hello@forcasther.com"
+              href="mailto:hello@forecasther.ai"
               className="text-primary hover:underline"
             >
-              hello@forcasther.com
+              hello@forecasther.ai
             </a>
             .
           </p>

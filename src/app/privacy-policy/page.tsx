@@ -31,7 +31,7 @@ export default function PrivacyPolicyPage() {
             ForecastHer (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or
             &ldquo;our&rdquo;) respects your privacy. This Privacy Policy
             explains how we collect, use, and protect your information when you
-            visit forcasther.com and sign up for our waitlist.
+            visit forecasther.ai and sign up for our waitlist.
           </p>
         </section>
 
@@ -113,10 +113,10 @@ export default function PrivacyPolicyPage() {
           <p className="mt-3">
             To make any of these requests, email us at{" "}
             <a
-              href="mailto:hello@forcasther.com"
+              href="mailto:hello@forecasther.ai"
               className="text-primary hover:underline"
             >
-              hello@forcasther.com
+              hello@forecasther.ai
             </a>
             .
           </p>
@@ -147,10 +147,10 @@ export default function PrivacyPolicyPage() {
           <p>
             Questions? Reach out at{" "}
             <a
-              href="mailto:hello@forcasther.com"
+              href="mailto:hello@forecasther.ai"
               className="text-primary hover:underline"
             >
-              hello@forcasther.com
+              hello@forecasther.ai
             </a>
             .
           </p>
