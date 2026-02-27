@@ -182,22 +182,22 @@ interface TaskLink {
 }
 
 const TASK_LINKS: TaskLink[] = [
-  { pattern: /market preview cards|market cards/i, href: "/admin/content?tab=assets", label: "Asset Generator" },
+  { pattern: /market preview cards|market cards/i, href: "/content?tab=assets", label: "Asset Generator" },
   { pattern: /scripts|script library/i, tab: "scripts", label: "Script Library" },
-  { pattern: /market of the day/i, href: "/admin/content?tab=editor", label: "Content Editor" },
+  { pattern: /market of the day/i, href: "/content?tab=editor", label: "Content Editor" },
   { pattern: /weekly digest email/i, tab: "scripts", scriptChannel: "email", scriptId: "s-9", label: "Email Template" },
   { pattern: /suggest a market.*thread/i, tab: "scripts", scriptId: "s-5", label: "Thread Template" },
   { pattern: /reddit.*post|reddit.*value/i, tab: "scripts", scriptChannel: "reddit", scriptId: "s-4", label: "Reddit Template" },
   { pattern: /outreach.*sprint|partner outreach|creator outreach|press outreach|collab/i, tab: "leads", label: "Leads & Outreach" },
   { pattern: /dms|dm follow/i, tab: "leads", label: "Leads & Outreach" },
-  { pattern: /prep.*week|prep.*assets|prep.*markets/i, href: "/admin/ai-studio", label: "AI Studio" },
+  { pattern: /prep.*week|prep.*assets|prep.*markets/i, href: "/ai-studio", label: "AI Studio" },
   { pattern: /report|weekly report|monthly report|weekly metrics|month recap/i, tab: "reporting", label: "Reporting" },
   { pattern: /update script library|best hooks/i, tab: "scripts", label: "Script Library" },
-  { pattern: /analytics/i, href: "/admin/analytics", label: "Analytics" },
-  { pattern: /x thread|week recap.*thread/i, href: "/admin/content?tab=editor", label: "Content Editor" },
-  { pattern: /tiktok|clip for tiktok/i, href: "/admin/content?tab=assets", label: "Asset Generator" },
-  { pattern: /social proof|waitlist count/i, href: "/admin/analytics", label: "Analytics" },
-  { pattern: /founding 500/i, href: "/admin/content?tab=assets", label: "Asset Generator" },
+  { pattern: /analytics/i, href: "/analytics", label: "Analytics" },
+  { pattern: /x thread|week recap.*thread/i, href: "/content?tab=editor", label: "Content Editor" },
+  { pattern: /tiktok|clip for tiktok/i, href: "/content?tab=assets", label: "Asset Generator" },
+  { pattern: /social proof|waitlist count/i, href: "/analytics", label: "Analytics" },
+  { pattern: /founding 500/i, href: "/content?tab=assets", label: "Asset Generator" },
 ];
 
 function getTaskLink(task: string): TaskLink | null {

@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -25,20 +26,24 @@ import {
   Activity,
   Sparkles,
   Rocket,
+  LogOut,
+  ShieldCheck,
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/admin", label: "Command Center", icon: LayoutDashboard },
-  { href: "/admin/growth-ops", label: "Growth Ops", icon: Rocket },
-  { href: "/admin/markets", label: "Markets", icon: TrendingUp },
-  { href: "/admin/content", label: "Content Studio", icon: FileEdit },
-  { href: "/admin/scheduler", label: "Scheduler", icon: Calendar },
-  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/community", label: "Community", icon: Users },
-  { href: "/admin/ai-studio", label: "AI Studio", icon: Sparkles },
-  { href: "/admin/workflows", label: "Workflows", icon: Workflow },
-  { href: "/admin/settings", label: "Admin", icon: Settings },
+  { href: "/", label: "Command Center", icon: LayoutDashboard },
+  { href: "/growth-ops", label: "Growth Ops", icon: Rocket },
+  { href: "/markets", label: "Markets", icon: TrendingUp },
+  { href: "/content", label: "Content Studio", icon: FileEdit },
+  { href: "/scheduler", label: "Scheduler", icon: Calendar },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/community", label: "Community", icon: Users },
+  { href: "/ai-studio", label: "AI Studio", icon: Sparkles },
+  { href: "/workflows", label: "Workflows", icon: Workflow },
+  { href: "/settings", label: "Admin", icon: Settings },
 ];
+
+const BARE_ROUTES = ["/login", "/mfa"];
 
 export default function AdminLayout({
   children,
@@ -46,13 +51,30 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [autopostEnabled, setAutopostEnabled] = useState(false);
 
+  // Bare layout for login and MFA pages
+  const isBare = BARE_ROUTES.some(
+    (r) => pathname === r || pathname.startsWith(r + "/")
+  );
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
+
   function isActive(href: string) {
-    if (href === "/admin") return pathname === "/admin";
+    if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
+  }
+
+  if (isBare) {
+    return <>{children}</>;
   }
 
   return (
@@ -76,7 +98,7 @@ export default function AdminLayout({
         {/* Sidebar header */}
         <div className="flex h-14 items-center justify-between border-b border-border px-3">
           {!collapsed && (
-            <Link href="/admin" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <span className="text-lg">🔮</span>
               <span className="font-serif font-bold text-sm text-gradient-brand">
                 ForecastHer
@@ -164,8 +186,21 @@ export default function AdminLayout({
           </div>
 
           <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs border-green-200 bg-green-50 text-green-700">
+              <ShieldCheck className="h-3 w-3 mr-1" />
+              2FA
+            </Badge>
             <Button variant="ghost" size="icon" className="h-8 w-8 relative">
               <Bell className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleLogout}
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </header>
