@@ -812,6 +812,333 @@ function DraftEditor() {
 
 // ── Asset Generator Tab ──────────────────────────────────────────────
 
+const CATEGORY_LABELS: Record<string, string> = {
+  "womens-health": "Women's Health",
+  "fertility": "Fertility",
+  "femtech": "FemTech",
+  "wellness": "Wellness",
+  "culture": "Culture",
+  "business": "Business",
+};
+
+type AssetSpec = {
+  label: string;
+  width: number;
+  height: number;
+  filename: string;
+};
+
+const ASSET_SPECS: AssetSpec[] = [
+  { label: "Square Card", width: 1080, height: 1080, filename: "square-card" },
+  { label: "Story Card", width: 1080, height: 1920, filename: "story-card" },
+  { label: "Carousel P1", width: 1080, height: 1080, filename: "carousel-p1" },
+  { label: "Thumbnail", width: 1280, height: 720, filename: "thumbnail" },
+  { label: "Resolved Badge", width: 1080, height: 1080, filename: "resolved-badge" },
+];
+
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function drawGradientBg(ctx: CanvasRenderingContext2D, w: number, h: number) {
+  const grad = ctx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, "#1e1033");
+  grad.addColorStop(0.5, "#2d1b4e");
+  grad.addColorStop(1, "#1a0f2e");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Decorative circles
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = "#a855f7";
+  ctx.beginPath();
+  ctx.arc(w * 0.85, h * 0.15, w * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(w * 0.1, h * 0.85, w * 0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function drawBrand(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  ctx.font = `bold ${size}px Georgia, serif`;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText("ForecastHer", x, y);
+  ctx.font = `${size * 0.45}px sans-serif`;
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.fillText("forcasther.com", x, y + size * 0.7);
+}
+
+function drawCategoryBadge(ctx: CanvasRenderingContext2D, label: string, x: number, y: number, size: number) {
+  ctx.font = `bold ${size}px sans-serif`;
+  const tw = ctx.measureText(label).width;
+  const px = size * 0.8;
+  const py = size * 0.4;
+  const bw = tw + px * 2;
+  const bh = size + py * 2;
+
+  ctx.fillStyle = "rgba(168, 85, 247, 0.3)";
+  const r = bh / 2;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + bw - r, y);
+  ctx.quadraticCurveTo(x + bw, y, x + bw, y + r);
+  ctx.quadraticCurveTo(x + bw, y + bh, x + bw - r, y + bh);
+  ctx.lineTo(x + r, y + bh);
+  ctx.quadraticCurveTo(x, y + bh, x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(168, 85, 247, 0.5)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = "#d8b4fe";
+  ctx.fillText(label, x + px, y + py + size * 0.82);
+}
+
+function drawOddsBar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, oddsLabel: string) {
+  const yesW = w * 0.65;
+  const noW = w * 0.35;
+  const r = h / 2;
+
+  // Yes bar
+  ctx.fillStyle = "#22c55e";
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + yesW - 2, y);
+  ctx.lineTo(x + yesW - 2, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.fill();
+
+  // No bar
+  ctx.fillStyle = "#ef4444";
+  ctx.beginPath();
+  ctx.moveTo(x + yesW + 2, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + yesW + 2, y + h);
+  ctx.fill();
+
+  // Labels
+  ctx.font = `bold ${h * 0.45}px sans-serif`;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText("Yes 65%", x + 20, y + h * 0.65);
+  ctx.textAlign = "right";
+  ctx.fillText("No 35%", x + w - 20, y + h * 0.65);
+  ctx.textAlign = "left";
+
+  // Odds label
+  ctx.font = `${h * 0.32}px sans-serif`;
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  const labelText = oddsLabel === "illustrative" ? "Illustrative odds" : "Beta Credits";
+  ctx.fillText(labelText, x, y + h + h * 0.55);
+}
+
+function renderAsset(
+  spec: AssetSpec,
+  question: string,
+  category: string,
+  oddsLabel: string,
+  resolveDate: string,
+): string {
+  const canvas = document.createElement("canvas");
+  canvas.width = spec.width;
+  canvas.height = spec.height;
+  const ctx = canvas.getContext("2d")!;
+  const w = spec.width;
+  const h = spec.height;
+  const pad = w * 0.07;
+
+  drawGradientBg(ctx, w, h);
+
+  const catLabel = CATEGORY_LABELS[category] || category;
+  const dateFmt = resolveDate
+    ? new Date(resolveDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "";
+
+  if (spec.label === "Square Card") {
+    // Brand top-left
+    drawBrand(ctx, pad, pad + 40, 42);
+    // Category badge
+    drawCategoryBadge(ctx, catLabel, pad, pad + 100, 22);
+    // Question
+    ctx.font = "bold 52px Georgia, serif";
+    ctx.fillStyle = "#ffffff";
+    const lines = wrapText(ctx, question, w - pad * 2);
+    const startY = h * 0.35;
+    lines.slice(0, 5).forEach((line, i) => {
+      ctx.fillText(line, pad, startY + i * 66);
+    });
+    // Resolve date
+    if (dateFmt) {
+      ctx.font = "24px sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.fillText(`Resolves: ${dateFmt}`, pad, h - pad - 120);
+    }
+    // Odds bar
+    drawOddsBar(ctx, pad, h - pad - 80, w - pad * 2, 60, oddsLabel);
+
+  } else if (spec.label === "Story Card") {
+    // Vertical layout with more breathing room
+    drawBrand(ctx, pad, pad + 60, 52);
+    drawCategoryBadge(ctx, catLabel, pad, pad + 140, 26);
+    // Question centered vertically
+    ctx.font = "bold 62px Georgia, serif";
+    ctx.fillStyle = "#ffffff";
+    const lines = wrapText(ctx, question, w - pad * 2);
+    const startY = h * 0.3;
+    lines.slice(0, 7).forEach((line, i) => {
+      ctx.fillText(line, pad, startY + i * 78);
+    });
+    // Resolve date
+    if (dateFmt) {
+      ctx.font = "28px sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.fillText(`Resolves: ${dateFmt}`, pad, h - pad - 240);
+    }
+    // Odds bar
+    drawOddsBar(ctx, pad, h - pad - 180, w - pad * 2, 70, oddsLabel);
+    // CTA
+    ctx.font = "bold 30px sans-serif";
+    ctx.fillStyle = "#a855f7";
+    ctx.fillText("Make your prediction →", pad, h - pad - 40);
+    ctx.font = "22px sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.fillText("forcasther.com", pad, h - pad);
+
+  } else if (spec.label === "Carousel P1") {
+    // Similar to square but with "Swipe" CTA
+    drawBrand(ctx, pad, pad + 40, 42);
+    drawCategoryBadge(ctx, catLabel, pad, pad + 100, 22);
+    // "1 / 5" indicator top right
+    ctx.font = "bold 24px sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.textAlign = "right";
+    ctx.fillText("1 / 5", w - pad, pad + 40);
+    ctx.textAlign = "left";
+    // Question
+    ctx.font = "bold 52px Georgia, serif";
+    ctx.fillStyle = "#ffffff";
+    const lines = wrapText(ctx, question, w - pad * 2);
+    const startY = h * 0.35;
+    lines.slice(0, 5).forEach((line, i) => {
+      ctx.fillText(line, pad, startY + i * 66);
+    });
+    // Odds bar
+    drawOddsBar(ctx, pad, h - pad - 140, w - pad * 2, 60, oddsLabel);
+    // Swipe indicator
+    ctx.font = "bold 28px sans-serif";
+    ctx.fillStyle = "#a855f7";
+    ctx.textAlign = "right";
+    ctx.fillText("Swipe for analysis →", w - pad, h - pad);
+    ctx.textAlign = "left";
+
+  } else if (spec.label === "Thumbnail") {
+    // Landscape — bigger text, left-aligned content, brand right
+    drawBrand(ctx, pad, pad + 44, 38);
+    // Category
+    drawCategoryBadge(ctx, catLabel, pad, pad + 84, 20);
+    // Question — takes up left 65%
+    ctx.font = "bold 46px Georgia, serif";
+    ctx.fillStyle = "#ffffff";
+    const lines = wrapText(ctx, question, w * 0.6);
+    const startY = h * 0.4;
+    lines.slice(0, 4).forEach((line, i) => {
+      ctx.fillText(line, pad, startY + i * 58);
+    });
+    // Right side: big odds
+    const rightX = w * 0.68;
+    ctx.textAlign = "center";
+    ctx.font = "bold 100px sans-serif";
+    ctx.fillStyle = "#22c55e";
+    ctx.fillText("65%", rightX + (w - rightX) / 2, h * 0.45);
+    ctx.font = "bold 28px sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.fillText("Yes", rightX + (w - rightX) / 2, h * 0.55);
+    ctx.textAlign = "left";
+    // Bottom bar
+    if (dateFmt) {
+      ctx.font = "22px sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.fillText(`Resolves: ${dateFmt}`, pad, h - pad);
+    }
+    ctx.font = "22px sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.textAlign = "right";
+    const labelText = oddsLabel === "illustrative" ? "Illustrative odds" : "Beta Credits";
+    ctx.fillText(labelText, w - pad, h - pad);
+    ctx.textAlign = "left";
+
+  } else if (spec.label === "Resolved Badge") {
+    drawBrand(ctx, pad, pad + 40, 42);
+    drawCategoryBadge(ctx, catLabel, pad, pad + 100, 22);
+    // Question (smaller since resolved overlay takes focus)
+    ctx.font = "bold 44px Georgia, serif";
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    const lines = wrapText(ctx, question, w - pad * 2);
+    lines.slice(0, 4).forEach((line, i) => {
+      ctx.fillText(line, pad, h * 0.28 + i * 56);
+    });
+    // Resolved stamp
+    ctx.save();
+    ctx.translate(w / 2, h * 0.62);
+    ctx.rotate(-0.15);
+    // Stamp border
+    const stampW = 500;
+    const stampH = 160;
+    ctx.strokeStyle = "#22c55e";
+    ctx.lineWidth = 8;
+    ctx.strokeRect(-stampW / 2, -stampH / 2, stampW, stampH);
+    // Inner border
+    ctx.strokeStyle = "rgba(34, 197, 94, 0.4)";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(-stampW / 2 + 12, -stampH / 2 + 12, stampW - 24, stampH - 24);
+    // Text
+    ctx.font = "bold 72px sans-serif";
+    ctx.fillStyle = "#22c55e";
+    ctx.textAlign = "center";
+    ctx.fillText("RESOLVED", 0, 24);
+    ctx.restore();
+    // Outcome
+    ctx.font = "bold 36px sans-serif";
+    ctx.fillStyle = "#22c55e";
+    ctx.textAlign = "center";
+    ctx.fillText("YES — Market resolved at 100%", w / 2, h * 0.82);
+    ctx.textAlign = "left";
+    // Date
+    if (dateFmt) {
+      ctx.font = "24px sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.textAlign = "center";
+      ctx.fillText(`Resolved: ${dateFmt}`, w / 2, h * 0.88);
+      ctx.textAlign = "left";
+    }
+    // Footer
+    ctx.font = "22px sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.fillText("forcasther.com", pad, h - pad);
+  }
+
+  return canvas.toDataURL("image/png");
+}
+
 function AssetGenerator() {
   const [marketQuestion, setMarketQuestion] = useState("");
   const [oddsLabel, setOddsLabel] = useState("beta_credits");
@@ -819,8 +1146,8 @@ function AssetGenerator() {
   const [categoryIcon, setCategoryIcon] = useState("womens-health");
   const [autoFilling, setAutoFilling] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [generatedAssets, setGeneratedAssets] = useState<string[]>([]);
-  const [exportedAssets, setExportedAssets] = useState<string[]>([]);
+  const [assetImages, setAssetImages] = useState<Record<string, string>>({});
+  const [currentlyGenerating, setCurrentlyGenerating] = useState<string | null>(null);
 
   function handleAutoFill() {
     setAutoFilling(true);
@@ -836,158 +1163,199 @@ function AssetGenerator() {
   function handleGenerateAll() {
     if (!marketQuestion.trim()) return;
     setGenerating(true);
-    setGeneratedAssets([]);
-    setExportedAssets([]);
-    const assets = ["Square Card", "Story Card", "Carousel P1", "Thumbnail", "Resolved Badge"];
-    // Stagger asset generation for visual effect
-    assets.forEach((asset, i) => {
+    setAssetImages({});
+    setCurrentlyGenerating(null);
+
+    ASSET_SPECS.forEach((spec, i) => {
       setTimeout(() => {
-        setGeneratedAssets((prev) => [...prev, asset]);
-      }, 400 + i * 300);
+        setCurrentlyGenerating(spec.label);
+        // Small delay to show the spinner, then render
+        setTimeout(() => {
+          const dataUrl = renderAsset(spec, marketQuestion, categoryIcon, oddsLabel, resolveDate);
+          setAssetImages((prev) => ({ ...prev, [spec.label]: dataUrl }));
+          if (i === ASSET_SPECS.length - 1) {
+            setGenerating(false);
+            setCurrentlyGenerating(null);
+          }
+        }, 200);
+      }, i * 500);
     });
-    setTimeout(() => setGenerating(false), 400 + assets.length * 300);
+  }
+
+  function handleDownload(spec: AssetSpec) {
+    const dataUrl = assetImages[spec.label];
+    if (!dataUrl) return;
+    const slug = marketQuestion.slice(0, 40).replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase();
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `${spec.filename}-${slug}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function handleDownloadAll() {
+    ASSET_SPECS.forEach((spec, i) => {
+      setTimeout(() => handleDownload(spec), i * 200);
+    });
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Inputs */}
-      <div className="space-y-4">
-        <div className="rounded-lg border border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 p-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Wand2 className="h-4 w-4 text-purple-600" />
-            <span className="text-xs font-semibold text-purple-900 dark:text-purple-300">
-              Auto-fill from latest market in inbox
-            </span>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Inputs */}
+        <div className="space-y-4">
+          <div className="rounded-lg border border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wand2 className="h-4 w-4 text-purple-600" />
+              <span className="text-xs font-semibold text-purple-900 dark:text-purple-300">
+                Auto-fill from latest market in inbox
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs gap-1"
+              disabled={autoFilling}
+              onClick={handleAutoFill}
+            >
+              {autoFilling ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+              {autoFilling ? "Loading..." : "Auto-fill"}
+            </Button>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs gap-1"
-            disabled={autoFilling}
-            onClick={handleAutoFill}
-          >
-            {autoFilling ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-            {autoFilling ? "Loading..." : "Auto-fill"}
-          </Button>
-        </div>
 
-        <div className="space-y-2">
-          <Label>Market Question</Label>
-          <Textarea
-            value={marketQuestion}
-            onChange={(e) => setMarketQuestion(e.target.value)}
-            placeholder="Will a new non-hormonal menopause treatment receive full FDA approval in 2026?"
-            rows={3}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Odds Label</Label>
-            <Select value={oddsLabel} onValueChange={setOddsLabel}>
+            <Label>Market Question</Label>
+            <Textarea
+              value={marketQuestion}
+              onChange={(e) => setMarketQuestion(e.target.value)}
+              placeholder="Will a new non-hormonal menopause treatment receive full FDA approval in 2026?"
+              rows={3}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Odds Label</Label>
+              <Select value={oddsLabel} onValueChange={setOddsLabel}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="beta_credits">Beta Credits</SelectItem>
+                  <SelectItem value="illustrative">Illustrative</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Resolve Date</Label>
+              <Input type="date" value={resolveDate} onChange={(e) => setResolveDate(e.target.value)} />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <Select value={categoryIcon} onValueChange={setCategoryIcon}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="beta_credits">Beta Credits</SelectItem>
-                <SelectItem value="illustrative">Illustrative</SelectItem>
+                <SelectItem value="womens-health">Women&apos;s Health</SelectItem>
+                <SelectItem value="fertility">Fertility</SelectItem>
+                <SelectItem value="femtech">FemTech</SelectItem>
+                <SelectItem value="wellness">Wellness</SelectItem>
+                <SelectItem value="culture">Culture</SelectItem>
+                <SelectItem value="business">Business</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label>Resolve Date</Label>
-            <Input type="date" value={resolveDate} onChange={(e) => setResolveDate(e.target.value)} />
+          <Separator />
+          <div className="flex gap-3">
+            <Button
+              className="gradient-purple text-white"
+              disabled={!marketQuestion.trim() || generating}
+              onClick={handleGenerateAll}
+            >
+              {generating ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Image className="h-4 w-4 mr-1" />
+              )}
+              {generating ? "Generating..." : "Generate All"}
+            </Button>
+            <Button
+              variant="outline"
+              disabled={!marketQuestion.trim() || generating || Object.keys(assetImages).length === 0}
+              onClick={handleGenerateAll}
+            >
+              <RefreshCw className="h-4 w-4 mr-1" /> Regenerate
+            </Button>
+            {Object.keys(assetImages).length === ASSET_SPECS.length && (
+              <Button variant="outline" onClick={handleDownloadAll}>
+                <Download className="h-4 w-4 mr-1" /> Download All
+              </Button>
+            )}
           </div>
         </div>
-        <div className="space-y-2">
-          <Label>Category</Label>
-          <Select value={categoryIcon} onValueChange={setCategoryIcon}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="womens-health">Women&apos;s Health</SelectItem>
-              <SelectItem value="fertility">Fertility</SelectItem>
-              <SelectItem value="femtech">FemTech</SelectItem>
-              <SelectItem value="wellness">Wellness</SelectItem>
-              <SelectItem value="culture">Culture</SelectItem>
-              <SelectItem value="business">Business</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Separator />
-        <div className="flex gap-3">
-          <Button
-            className="gradient-purple text-white"
-            disabled={!marketQuestion.trim() || generating}
-            onClick={handleGenerateAll}
-          >
-            {generating ? (
-              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-            ) : (
-              <Image className="h-4 w-4 mr-1" />
-            )}
-            {generating ? "Generating..." : "Generate All"}
-          </Button>
-          <Button
-            variant="outline"
-            disabled={!marketQuestion.trim() || generating || generatedAssets.length === 0}
-            onClick={() => {
-              setGeneratedAssets([]);
-              setExportedAssets([]);
-              handleGenerateAll();
-            }}
-          >
-            <RefreshCw className="h-4 w-4 mr-1" /> Regenerate
-          </Button>
-        </div>
-      </div>
 
-      {/* Output previews */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium">Generated Assets</h3>
-        <div className="grid grid-cols-2 gap-3">
-          {["Square Card", "Story Card", "Carousel P1", "Thumbnail", "Resolved Badge"].map((label) => {
-            const isGenerated = generatedAssets.includes(label);
-            const isExported = exportedAssets.includes(label);
-            return (
-              <Card key={label} className={isGenerated ? "border-green-200" : ""}>
-                <CardContent className="p-4">
-                  <div className={`aspect-square rounded-lg border flex items-center justify-center mb-2 ${
-                    isGenerated
-                      ? "border-green-300 bg-green-50 dark:bg-green-950/20"
-                      : "border-dashed border-border bg-muted/30"
-                  }`}>
-                    {isGenerated ? (
-                      <div className="text-center">
-                        <CheckCircle className="h-8 w-8 text-green-500 mx-auto" />
-                        <p className="text-[10px] text-green-600 mt-1">Generated</p>
-                      </div>
-                    ) : generating ? (
-                      <Loader2 className="h-6 w-6 text-purple-400 animate-spin" />
-                    ) : (
-                      <Image className="h-8 w-8 text-muted-foreground/30" />
-                    )}
-                  </div>
-                  <p className="text-xs font-medium text-center">{label}</p>
-                  <div className="flex gap-1 justify-center mt-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={`h-6 w-6 ${isExported ? "text-green-600" : ""}`}
-                      title="Export to draft"
-                      disabled={!isGenerated}
-                      onClick={() => setExportedAssets((prev) => prev.includes(label) ? prev : [...prev, label])}
-                    >
-                      {isExported ? <CheckCircle className="h-3 w-3" /> : <Download className="h-3 w-3" />}
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" title="Version history" disabled={!isGenerated}>
-                      <Clock className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+        {/* Output previews */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium">
+            Generated Assets
+            {Object.keys(assetImages).length > 0 && (
+              <span className="text-muted-foreground font-normal ml-2">
+                ({Object.keys(assetImages).length}/{ASSET_SPECS.length})
+              </span>
+            )}
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            {ASSET_SPECS.map((spec) => {
+              const dataUrl = assetImages[spec.label];
+              const isGenerating = currentlyGenerating === spec.label && !dataUrl;
+              return (
+                <Card key={spec.label} className={dataUrl ? "border-green-200" : ""}>
+                  <CardContent className="p-3">
+                    <div className={`aspect-square rounded-lg border overflow-hidden flex items-center justify-center mb-2 ${
+                      dataUrl
+                        ? "border-green-300"
+                        : "border-dashed border-border bg-muted/30"
+                    }`}>
+                      {dataUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={dataUrl}
+                          alt={spec.label}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : isGenerating ? (
+                        <div className="text-center">
+                          <Loader2 className="h-6 w-6 text-purple-400 animate-spin mx-auto" />
+                          <p className="text-[10px] text-purple-400 mt-1">Rendering...</p>
+                        </div>
+                      ) : (
+                        <div className="text-center text-muted-foreground/40">
+                          <Image className="h-8 w-8 mx-auto" />
+                          <p className="text-[10px] mt-1">{spec.width}×{spec.height}</p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs font-medium text-center">{spec.label}</p>
+                    <p className="text-[10px] text-muted-foreground text-center">{spec.width}×{spec.height}px</p>
+                    <div className="flex gap-1 justify-center mt-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        title="Download PNG"
+                        disabled={!dataUrl}
+                        onClick={() => handleDownload(spec)}
+                      >
+                        <Download className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
