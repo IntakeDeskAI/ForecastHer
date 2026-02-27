@@ -24,6 +24,7 @@ import {
   BarChart3,
   Zap,
   Play,
+  Loader2,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -141,9 +142,45 @@ export default function GrowthOpsTodayPage() {
     bestPost: "—",
     bestChannel: "—",
   });
+  const [generatingPack, setGeneratingPack] = useState(false);
+  const [packError, setPackError] = useState("");
+  const [packGenerated, setPackGenerated] = useState(false);
 
   // Targets (will come from day_plan)
   const targets = { posts: 4, comments: 30, dms: 10, signups: 25 };
+
+  async function handleGenerateTodayPack() {
+    setGeneratingPack(true);
+    setPackError("");
+    try {
+      const res = await fetch("/api/admin/growth-ops/generate-pack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "today", dayCount: 1 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPackError(data.error || "Generation failed.");
+        return;
+      }
+      // Mark Create phase items as done since AI generated the pack
+      setPhases((prev) =>
+        prev.map((phase) =>
+          phase.id === "create"
+            ? {
+                ...phase,
+                items: phase.items.map((item) => ({ ...item, done: true })),
+              }
+            : phase
+        )
+      );
+      setPackGenerated(true);
+    } catch (err) {
+      setPackError(err instanceof Error ? err.message : "Network error.");
+    } finally {
+      setGeneratingPack(false);
+    }
+  }
 
   // Compute progress
   const totalItems = phases.reduce((sum, p) => sum + p.items.length, 0);
@@ -206,10 +243,25 @@ export default function GrowthOpsTodayPage() {
                   <Button size="sm" className="gradient-purple text-white gap-1">
                     <Play className="h-3 w-3" /> Start Today
                   </Button>
-                  <Button size="sm" variant="outline" className="gap-1">
-                    <Sparkles className="h-3 w-3" /> Generate Today Pack
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    onClick={handleGenerateTodayPack}
+                    disabled={generatingPack || packGenerated}
+                  >
+                    {generatingPack ? (
+                      <><Loader2 className="h-3 w-3 animate-spin" /> Generating...</>
+                    ) : packGenerated ? (
+                      <><CheckCircle className="h-3 w-3 text-green-600" /> Pack Generated</>
+                    ) : (
+                      <><Sparkles className="h-3 w-3" /> Generate Today Pack</>
+                    )}
                   </Button>
                 </div>
+                {packError && (
+                  <p className="text-xs text-red-500 pt-1">{packError}</p>
+                )}
                 <p className="text-xs text-muted-foreground/70 pt-1">
                   Pre-launch. No fake activity. Every post includes disclosure and resolution source.
                 </p>

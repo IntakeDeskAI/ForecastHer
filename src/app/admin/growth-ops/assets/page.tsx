@@ -68,6 +68,12 @@ interface UTMLink {
   fullUrl: string;
 }
 
+interface GeneratedPack {
+  markets: Array<{ question: string; category: string; resolvesBy: string; resolutionCriteria: string }>;
+  scripts: Array<{ platform: string; marketIndex: number; content: string }>;
+  utms: Array<{ source: string; medium: string; campaign: string; content: string; fullUrl: string }>;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    INITIAL STATE
    ═══════════════════════════════════════════════════════════════════════ */
@@ -114,7 +120,7 @@ const PLATFORM_LABELS: Record<string, string> = {
 };
 
 export default function AssetsPage() {
-  const [inventory] = useState<Asset[]>(INITIAL_INVENTORY);
+  const [inventory, setInventory] = useState<Asset[]>(INITIAL_INVENTORY);
   const [templates, setTemplates] = useState<ScriptTemplate[]>(INITIAL_TEMPLATES);
   const [utmLinks, setUtmLinks] = useState<UTMLink[]>([]);
   const [generating, setGenerating] = useState(false);
@@ -136,11 +142,66 @@ export default function AssetsPage() {
     utms: utmLinks.length,
   };
 
+  const [generatedPack, setGeneratedPack] = useState<GeneratedPack | null>(null);
+  const [genError, setGenError] = useState("");
+
   async function handleGenerateWeekPack() {
     setGenerating(true);
-    // Simulated delay — will call API when connected
-    await new Promise((r) => setTimeout(r, 2000));
-    setGenerating(false);
+    setGenError("");
+    try {
+      const res = await fetch("/api/admin/growth-ops/generate-pack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "week", dayCount: 7 }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setGenError(data.error || "Generation failed.");
+        setGenerating(false);
+        return;
+      }
+      setGeneratedPack(data.pack);
+      // Build inventory from generated pack
+      const newAssets: Asset[] = [];
+      data.pack.markets?.forEach((m: { question: string }, i: number) => {
+        newAssets.push({
+          id: `mkt-${i}`,
+          type: "market",
+          label: m.question,
+          status: "ready",
+        });
+      });
+      data.pack.scripts?.forEach(
+        (s: { platform: string; marketIndex: number; content: string }, i: number) => {
+          newAssets.push({
+            id: `scr-${i}`,
+            type: "script",
+            label: `Day ${s.marketIndex + 1} — ${PLATFORM_LABELS[s.platform] ?? s.platform}`,
+            platform: s.platform,
+            status: "ready",
+            preview: s.content,
+          });
+        }
+      );
+      setInventory(newAssets);
+      // Auto-create UTM links
+      const newUtms: UTMLink[] = (data.pack.utms ?? []).map(
+        (u: { source: string; medium: string; campaign: string; content: string; fullUrl: string }, i: number) => ({
+          id: `utm-gen-${i}`,
+          url: "https://forecasther.ai",
+          source: u.source,
+          medium: u.medium,
+          campaign: u.campaign,
+          content: u.content,
+          fullUrl: u.fullUrl,
+        })
+      );
+      setUtmLinks((prev) => [...prev, ...newUtms]);
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : "Network error.");
+    } finally {
+      setGenerating(false);
+    }
   }
 
   function buildUtmUrl(): string {
@@ -220,8 +281,13 @@ export default function AssetsPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-3">
-            AI generates a complete week of assets: 7 markets, 7 X posts, 7 IG captions, 7 TikTok scripts, 7 LinkedIn posts, 7 image cards, 7 UTM links.
+            AI generates a complete week of assets: 7 markets, 7 X posts, 7 IG captions, 7 TikTok scripts, 7 LinkedIn posts, 7 UTM links.
           </p>
+          {genError && (
+            <div className="rounded-md bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 px-3 py-2 text-sm text-red-700 dark:text-red-400 mb-3">
+              {genError}
+            </div>
+          )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-lg border p-3 text-center">
               <BarChart3 className="h-4 w-4 mx-auto text-purple-500 mb-1" />
@@ -298,7 +364,7 @@ export default function AssetsPage() {
         </Card>
       )}
 
-      {inventory.length === 0 && (
+      {inventory.length === 0 && !generatedPack && (
         <Card>
           <CardContent className="py-10 text-center">
             <Package className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
@@ -306,6 +372,67 @@ export default function AssetsPage() {
             <p className="text-sm text-muted-foreground mt-1">
               Generate a Week Pack to populate your asset inventory, or create assets individually.
             </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Generated Pack Preview */}
+      {generatedPack && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-serif flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-600" /> Generated Pack
+              </CardTitle>
+              <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700">
+                {generatedPack.markets.length} markets, {generatedPack.scripts.length} scripts
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Markets */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Markets</h4>
+              {generatedPack.markets.map((m, i) => (
+                <div key={i} className="rounded-lg border p-3 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] font-mono">Day {i + 1}</Badge>
+                    <Badge variant="secondary" className="text-[10px]">{m.category}</Badge>
+                  </div>
+                  <p className="text-sm font-medium">{m.question}</p>
+                  <p className="text-xs text-muted-foreground">{m.resolutionCriteria}</p>
+                  <p className="text-[10px] text-muted-foreground">Resolves by: {m.resolvesBy}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Scripts (expandable) */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Scripts ({generatedPack.scripts.length})</h4>
+              {generatedPack.scripts.map((s, i) => (
+                <div key={i} className="rounded-lg border p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">
+                        {PLATFORM_LABELS[s.platform] ?? s.platform}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">Day {s.marketIndex + 1}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2"
+                      onClick={() => copyToClipboard(s.content)}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono bg-muted/30 rounded p-2 max-h-32 overflow-y-auto">
+                    {s.content}
+                  </pre>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
