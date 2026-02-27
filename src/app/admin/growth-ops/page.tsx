@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1993,13 +1992,7 @@ function ReportingTab() {
 const VALID_TABS = ["calendar", "tasks", "scripts", "leads", "reporting"];
 
 export default function GrowthOpsPage() {
-  const searchParams = useSearchParams();
-  const tabParam = searchParams.get("tab");
-
-  // React state is the source of truth for the active tab
-  const [activeTab, setActiveTab] = useState(
-    VALID_TABS.includes(tabParam ?? "") ? tabParam! : "calendar"
-  );
+  const [activeTab, setActiveTab] = useState("calendar");
 
   // State for script deep-link navigation from calendar badges
   // Uses a counter to force ScriptLibraryTab to remount with new props

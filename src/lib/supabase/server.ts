@@ -2,11 +2,29 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 export async function createClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    // During static prerendering env vars may not be available.
+    // Return a no-op client that won't make real requests.
+    return createServerClient(
+      "https://placeholder.supabase.co",
+      "placeholder-anon-key",
+      {
+        cookies: {
+          getAll() { return []; },
+          setAll() {},
+        },
+      }
+    );
+  }
+
   const cookieStore = await cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    key,
     {
       cookies: {
         getAll() {
