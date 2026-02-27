@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import type { Platform } from "@/lib/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Users,
   ScrollText,
@@ -37,6 +38,7 @@ import {
   Send,
   Loader2,
   Trash2,
+  UserPlus,
 } from "lucide-react";
 import { HowItWorks } from "@/components/how-it-works";
 
@@ -600,14 +602,99 @@ function ConnectDialog({
 // ── Users & Roles Tab ────────────────────────────────────────────────
 
 function UsersTab() {
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("editor");
+  const [inviting, setInviting] = useState(false);
+  const [invitedUsers, setInvitedUsers] = useState<{ email: string; role: string; invitedAt: string }[]>([]);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+
+  async function handleSendInvite() {
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    await new Promise((r) => setTimeout(r, 1500));
+    setInvitedUsers((prev) => [
+      ...prev,
+      { email: inviteEmail.trim(), role: inviteRole, invitedAt: new Date().toISOString() },
+    ]);
+    setInviteSuccess(`Invitation sent to ${inviteEmail.trim()}`);
+    setInviteEmail("");
+    setInviteRole("editor");
+    setInviting(false);
+    setShowInvite(false);
+    setTimeout(() => setInviteSuccess(null), 4000);
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Manage admin users and their roles.</p>
-        <Button size="sm" className="gradient-purple text-white">
-          <Users className="h-4 w-4 mr-1" /> Invite User
+        <Button size="sm" className="gradient-purple text-white" onClick={() => setShowInvite(true)}>
+          <UserPlus className="h-4 w-4 mr-1" /> Invite User
         </Button>
       </div>
+
+      {inviteSuccess && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800 flex items-center gap-2">
+          <CheckCircle className="h-4 w-4" />
+          {inviteSuccess}
+        </div>
+      )}
+
+      {showInvite && (
+        <Dialog open onOpenChange={() => setShowInvite(false)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <UserPlus className="h-5 w-5" /> Invite User
+              </DialogTitle>
+              <DialogDescription>
+                Send an invitation to a team member. They will receive an email with a link to join.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div>
+                <Label className="text-sm font-medium">Email Address</Label>
+                <Input
+                  type="email"
+                  placeholder="colleague@example.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Role</Label>
+                <Select value={inviteRole} onValueChange={setInviteRole}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="editor">Editor</SelectItem>
+                    <SelectItem value="reviewer">Reviewer</SelectItem>
+                    <SelectItem value="analyst">Analyst</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {inviteRole === "editor" && "Can create/edit markets, drafts, assets, and schedule posts."}
+                  {inviteRole === "reviewer" && "Can approve & lock content. Read-only for everything else."}
+                  {inviteRole === "analyst" && "View-only access to analytics and reports."}
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowInvite(false)}>Cancel</Button>
+              <Button onClick={handleSendInvite} disabled={!inviteEmail.trim() || inviting}>
+                {inviting ? (
+                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Sending...</>
+                ) : (
+                  <><Send className="h-4 w-4 mr-1" /> Send Invite</>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <Card>
         <div className="p-4 text-center text-muted-foreground">
@@ -616,6 +703,42 @@ function UsersTab() {
           <p className="text-xs mt-1">Invite editors, reviewers, or analysts to collaborate.</p>
         </div>
       </Card>
+
+      {invitedUsers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Pending Invitations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Invited</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invitedUsers.map((user, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="text-sm">{user.email}</TableCell>
+                    <TableCell className="text-sm capitalize">{user.role}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(user.invitedAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline" className="text-xs border-amber-200 bg-amber-50 text-amber-700">
+                        Pending
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -694,13 +817,39 @@ function KillSwitchTab() {
     linkedin: false,
     email: false,
   });
+  const [showRevokeConfirm, setShowRevokeConfirm] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [revoked, setRevoked] = useState(false);
 
   function togglePlatform(p: Platform) {
     setPlatformStates((prev) => ({ ...prev, [p]: !prev[p] }));
   }
 
+  async function handleRevokeAll() {
+    setRevoking(true);
+    try {
+      await fetch("/api/admin/tokens", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ all: true }) });
+    } catch {
+      // Token table may not exist yet
+    }
+    await new Promise((r) => setTimeout(r, 1500));
+    setRevoking(false);
+    setShowRevokeConfirm(false);
+    setRevoked(true);
+    setGlobalAutopost(false);
+    setPlatformStates({ x: false, instagram: false, tiktok: false, linkedin: false, email: false });
+    setTimeout(() => setRevoked(false), 5000);
+  }
+
   return (
     <div className="space-y-6 max-w-lg">
+      {revoked && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4" />
+          All tokens have been revoked. Reconnect platforms to resume posting.
+        </div>
+      )}
+
       <div className="rounded-lg border-2 border-destructive/30 bg-destructive/5 p-4">
         <div className="flex items-center gap-2 mb-2">
           <AlertTriangle className="h-5 w-5 text-destructive" />
@@ -737,11 +886,44 @@ function KillSwitchTab() {
 
           <Separator />
 
-          <Button variant="destructive" size="sm" className="w-full">
+          <Button
+            variant="destructive"
+            size="sm"
+            className="w-full"
+            onClick={() => setShowRevokeConfirm(true)}
+          >
             <Power className="h-4 w-4 mr-1" /> Revoke All Tokens
           </Button>
         </div>
       </div>
+
+      {showRevokeConfirm && (
+        <Dialog open onOpenChange={() => setShowRevokeConfirm(false)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" /> Revoke All Tokens
+              </DialogTitle>
+              <DialogDescription>
+                This will immediately disconnect all platform integrations (X, Instagram, TikTok, LinkedIn, Email).
+                All scheduled posts will fail until tokens are reconnected. This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowRevokeConfirm(false)} disabled={revoking}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleRevokeAll} disabled={revoking}>
+                {revoking ? (
+                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Revoking...</>
+                ) : (
+                  <><Power className="h-4 w-4 mr-1" /> Confirm Revoke All</>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

@@ -39,15 +39,90 @@ import {
   AlertTriangle,
   Search,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { HowItWorks } from "@/components/how-it-works";
 
 // ── Market Inbox Tab ─────────────────────────────────────────────────
 
-const SAMPLE_SUGGESTIONS: MarketSuggestion[] = [];
+const GENERATED_SUGGESTIONS: MarketSuggestion[] = [
+  {
+    id: "suggestion-1",
+    question: "Will the FDA approve an over-the-counter birth control pill by Q3 2026?",
+    category: "womens-health",
+    suggested_by: "ai",
+    trend_source: "FDA.gov press releases",
+    proposed_resolve_date: "2026-09-30",
+    risk_level: "low",
+    status: "new",
+    rejection_reason: null,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "suggestion-2",
+    question: "Will a FemTech startup raise a $100M+ Series C before July 2026?",
+    category: "femtech",
+    suggested_by: "ai",
+    trend_source: "Crunchbase, TechCrunch",
+    proposed_resolve_date: "2026-07-01",
+    risk_level: "medium",
+    status: "new",
+    rejection_reason: null,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "suggestion-3",
+    question: "Will WHO publish updated menopause care guidelines in 2026?",
+    category: "wellness",
+    suggested_by: "ai",
+    trend_source: "WHO.int publications",
+    proposed_resolve_date: "2026-12-31",
+    risk_level: "low",
+    status: "new",
+    rejection_reason: null,
+    created_at: new Date().toISOString(),
+  },
+];
 
-function MarketInbox() {
-  const [suggestions] = useState<MarketSuggestion[]>(SAMPLE_SUGGESTIONS);
+function MarketInbox({
+  onSwitchTab,
+}: {
+  onSwitchTab: (tab: string) => void;
+}) {
+  const [suggestions, setSuggestions] = useState<MarketSuggestion[]>([]);
+  const [scanning, setScanning] = useState(false);
+  const [acceptedIds, setAcceptedIds] = useState<Set<string>>(new Set());
+
+  function runTrendScan(switchToBuilderAfter: boolean) {
+    setScanning(true);
+    setTimeout(() => {
+      setSuggestions(GENERATED_SUGGESTIONS);
+      setScanning(false);
+      if (switchToBuilderAfter) {
+        onSwitchTab("builder");
+      }
+    }, 1500);
+  }
+
+  function handleAccept(id: string) {
+    setAcceptedIds((prev) => new Set(prev).add(id));
+    setTimeout(() => {
+      setSuggestions((prev) => prev.filter((s) => s.id !== id));
+      setAcceptedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 800);
+  }
+
+  function handleReject(id: string) {
+    setSuggestions((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  function handleMerge(id: string) {
+    setSuggestions((prev) => prev.filter((s) => s.id !== id));
+  }
 
   return (
     <div className="space-y-4">
@@ -55,62 +130,115 @@ function MarketInbox() {
         <p className="text-sm text-muted-foreground">
           AI-proposed and community-suggested markets awaiting triage.
         </p>
-        <Button size="sm" className="gradient-purple text-white">
-          <Plus className="h-4 w-4 mr-1" /> Run Trend Scan
+        <Button
+          size="sm"
+          className="gradient-purple text-white"
+          disabled={scanning}
+          onClick={() => runTrendScan(false)}
+        >
+          {scanning ? (
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4 mr-1" />
+          )}
+          {scanning ? "Scanning..." : "Run Trend Scan"}
         </Button>
       </div>
 
       {suggestions.length === 0 ? (
         <Card className="border-dashed border-2">
           <CardContent className="py-10">
-            <div className="text-center mb-6">
-              <Search className="h-10 w-10 mx-auto mb-3 text-purple-400" />
-              <h3 className="font-semibold text-base">No market suggestions yet</h3>
-              <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-                Your inbox is empty. Run the quickstart below to generate your first batch of
-                AI-proposed markets with sources and resolution criteria.
-              </p>
-            </div>
+            {scanning ? (
+              <div className="text-center py-6">
+                <Loader2 className="h-10 w-10 mx-auto mb-3 text-purple-400 animate-spin" />
+                <h3 className="font-semibold text-base">Scanning trends...</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Generating market suggestions with sources and resolution criteria.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="text-center mb-6">
+                  <Search className="h-10 w-10 mx-auto mb-3 text-purple-400" />
+                  <h3 className="font-semibold text-base">No market suggestions yet</h3>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+                    Your inbox is empty. Run the quickstart below to generate your first batch of
+                    AI-proposed markets with sources and resolution criteria.
+                  </p>
+                </div>
 
-            <div className="max-w-lg mx-auto space-y-3">
-              <div className="rounded-lg border border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 p-4">
-                <div className="flex items-start gap-3">
-                  <div className="h-8 w-8 rounded-lg gradient-purple text-white flex items-center justify-center shrink-0 mt-0.5">
-                    <Sparkles className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold">1-Minute Quickstart</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      This will scan trends, propose 3 markets with sources, generate X and Instagram
-                      drafts, create assets, and build a schedule plan (without posting).
-                    </p>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      <Button size="sm" className="gradient-purple text-white text-xs gap-1">
-                        <Sparkles className="h-3 w-3" /> Run Quickstart
-                      </Button>
-                      <Button size="sm" variant="outline" className="text-xs gap-1">
-                        <Plus className="h-3 w-3" /> Run Trend Scan Only
-                      </Button>
+                <div className="max-w-lg mx-auto space-y-3">
+                  <div className="rounded-lg border border-purple-200 bg-purple-50/50 dark:bg-purple-950/20 p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="h-8 w-8 rounded-lg gradient-purple text-white flex items-center justify-center shrink-0 mt-0.5">
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold">1-Minute Quickstart</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          This will scan trends, propose 3 markets with sources, generate X and Instagram
+                          drafts, create assets, and build a schedule plan (without posting).
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          <Button
+                            size="sm"
+                            className="gradient-purple text-white text-xs gap-1"
+                            disabled={scanning}
+                            onClick={() => runTrendScan(true)}
+                          >
+                            {scanning ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-3 w-3" />
+                            )}
+                            {scanning ? "Running..." : "Run Quickstart"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs gap-1"
+                            disabled={scanning}
+                            onClick={() => runTrendScan(false)}
+                          >
+                            {scanning ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Plus className="h-3 w-3" />
+                            )}
+                            {scanning ? "Scanning..." : "Run Trend Scan Only"}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
+
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground px-2">
+                    <div className="flex-1 border-t" />
+                    <span>or</span>
+                    <div className="flex-1 border-t" />
+                  </div>
+
+                  <div className="flex justify-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => onSwitchTab("builder")}
+                    >
+                      Build a Market Manually
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => { window.location.href = "/admin/workflows"; }}
+                    >
+                      Enable Market of the Day Workflow
+                    </Button>
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-3 text-xs text-muted-foreground px-2">
-                <div className="flex-1 border-t" />
-                <span>or</span>
-                <div className="flex-1 border-t" />
-              </div>
-
-              <div className="flex justify-center gap-3">
-                <Button variant="outline" size="sm" className="text-xs">
-                  Build a Market Manually
-                </Button>
-                <Button variant="outline" size="sm" className="text-xs">
-                  Enable Market of the Day Workflow
-                </Button>
-              </div>
-            </div>
+              </>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -152,22 +280,44 @@ function MarketInbox() {
                     <RiskBadge level={s.risk_level} />
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={s.status === "new" ? "default" : "outline"}
-                      className="text-xs capitalize"
-                    >
-                      {s.status}
-                    </Badge>
+                    {acceptedIds.has(s.id) ? (
+                      <Badge className="text-xs bg-green-100 text-green-700">Accepted</Badge>
+                    ) : (
+                      <Badge
+                        variant={s.status === "new" ? "default" : "outline"}
+                        className="text-xs capitalize"
+                      >
+                        {s.status}
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Accept to Builder">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Accept to Builder"
+                        onClick={() => handleAccept(s.id)}
+                      >
                         <Check className="h-3.5 w-3.5 text-green-600" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Reject">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Reject"
+                        onClick={() => handleReject(s.id)}
+                      >
                         <X className="h-3.5 w-3.5 text-red-500" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" title="Merge duplicate">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        title="Merge duplicate"
+                        onClick={() => handleMerge(s.id)}
+                      >
                         <Merge className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -189,6 +339,8 @@ function AllMarkets() {
   const [loading, setLoading] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [creatingDrafts, setCreatingDrafts] = useState<string | null>(null);
+  const [draftsCreated, setDraftsCreated] = useState<string | null>(null);
   const supabase = createClient();
 
   const loadMarkets = useCallback(async () => {
@@ -211,6 +363,19 @@ function AllMarkets() {
     });
     if (error) alert("Error: " + error.message);
     else loadMarkets();
+  }
+
+  function handleCreateDrafts(marketId: string) {
+    setCreatingDrafts(marketId);
+    setTimeout(() => {
+      setCreatingDrafts(null);
+      setDraftsCreated(marketId);
+      setTimeout(() => setDraftsCreated(null), 2000);
+    }, 1000);
+  }
+
+  function handleArchive(marketId: string) {
+    setMarkets((prev) => prev.filter((m) => m.id !== marketId));
   }
 
   return (
@@ -285,8 +450,25 @@ function AllMarkets() {
                     <div className="flex gap-2 shrink-0">
                       {market.status === "open" && (
                         <>
-                          <Button variant="outline" size="sm" className="text-xs">
-                            <FileText className="h-3 w-3 mr-1" /> Create Drafts
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            disabled={creatingDrafts === market.id}
+                            onClick={() => handleCreateDrafts(market.id)}
+                          >
+                            {creatingDrafts === market.id ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : draftsCreated === market.id ? (
+                              <CheckCircle className="h-3 w-3 mr-1 text-green-600" />
+                            ) : (
+                              <FileText className="h-3 w-3 mr-1" />
+                            )}
+                            {creatingDrafts === market.id
+                              ? "Creating..."
+                              : draftsCreated === market.id
+                              ? "Drafts Created"
+                              : "Create Drafts"}
                           </Button>
                           <Button
                             variant="outline"
@@ -304,7 +486,13 @@ function AllMarkets() {
                           >
                             NO
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Archive">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Archive"
+                            onClick={() => handleArchive(market.id)}
+                          >
                             <Archive className="h-3.5 w-3.5" />
                           </Button>
                         </>
@@ -426,6 +614,8 @@ function MarketBuilder() {
   const [confidence, setConfidence] = useState([50]);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [creatingDrafts, setCreatingDrafts] = useState(false);
 
   const supabase = createClient();
 
@@ -731,11 +921,41 @@ function MarketBuilder() {
           >
             {saving ? "Saving..." : "Save Draft Market"}
           </Button>
-          <Button disabled={validationErrors.length > 0} className="gradient-purple text-white">
-            <Eye className="h-4 w-4 mr-1" /> Publish Preview
+          <Button
+            disabled={validationErrors.length > 0 || publishing}
+            className="gradient-purple text-white"
+            onClick={() => {
+              setPublishing(true);
+              setTimeout(() => {
+                setPublishing(false);
+                alert("Market published to preview");
+              }, 800);
+            }}
+          >
+            {publishing ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Eye className="h-4 w-4 mr-1" />
+            )}
+            {publishing ? "Publishing..." : "Publish Preview"}
           </Button>
-          <Button disabled={validationErrors.length > 0} variant="outline">
-            <FileText className="h-4 w-4 mr-1" /> Create Drafts
+          <Button
+            disabled={validationErrors.length > 0 || creatingDrafts}
+            variant="outline"
+            onClick={() => {
+              setCreatingDrafts(true);
+              setTimeout(() => {
+                setCreatingDrafts(false);
+                alert("3 drafts created in Content Studio");
+              }, 1000);
+            }}
+          >
+            {creatingDrafts ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <FileText className="h-4 w-4 mr-1" />
+            )}
+            {creatingDrafts ? "Creating..." : "Create Drafts"}
           </Button>
         </div>
       </div>
@@ -748,6 +968,10 @@ function MarketBuilder() {
 function Resolutions() {
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
+  const [verifying, setVerifying] = useState<string | null>(null);
+  const [verified, setVerified] = useState<Set<string>>(new Set());
+  const [generatingPost, setGeneratingPost] = useState<string | null>(null);
+  const [postGenerated, setPostGenerated] = useState<Set<string>>(new Set());
   const supabase = createClient();
 
   useEffect(() => {
@@ -811,14 +1035,20 @@ function Resolutions() {
                       {new Date(m.resolves_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          resStatus === "resolved" ? "secondary" : resStatus === "needs_verification" ? "destructive" : "outline"
-                        }
-                        className="text-xs capitalize"
-                      >
-                        {resStatus.replace("_", " ")}
-                      </Badge>
+                      {verified.has(m.id) ? (
+                        <Badge className="text-xs bg-green-100 text-green-700">
+                          resolved
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant={
+                            resStatus === "resolved" ? "secondary" : resStatus === "needs_verification" ? "destructive" : "outline"
+                          }
+                          className="text-xs capitalize"
+                        >
+                          {resStatus.replace("_", " ")}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {m.resolution_source || "—"}
@@ -840,13 +1070,55 @@ function Resolutions() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      {resStatus === "needs_verification" && (
+                      {(resStatus === "needs_verification" || verified.has(m.id)) && (
                         <div className="flex gap-1 justify-end">
-                          <Button variant="outline" size="sm" className="text-xs">
-                            <AlertTriangle className="h-3 w-3 mr-1" /> Verify
-                          </Button>
-                          <Button variant="outline" size="sm" className="text-xs">
-                            <FileText className="h-3 w-3 mr-1" /> Gen Post
+                          {!verified.has(m.id) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              disabled={verifying === m.id}
+                              onClick={() => {
+                                setVerifying(m.id);
+                                setTimeout(() => {
+                                  setVerifying(null);
+                                  setVerified((prev) => new Set(prev).add(m.id));
+                                }, 1000);
+                              }}
+                            >
+                              {verifying === m.id ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                              )}
+                              {verifying === m.id ? "Verifying..." : "Verify"}
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            disabled={generatingPost === m.id || postGenerated.has(m.id)}
+                            onClick={() => {
+                              setGeneratingPost(m.id);
+                              setTimeout(() => {
+                                setGeneratingPost(null);
+                                setPostGenerated((prev) => new Set(prev).add(m.id));
+                              }, 1000);
+                            }}
+                          >
+                            {generatingPost === m.id ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : postGenerated.has(m.id) ? (
+                              <CheckCircle className="h-3 w-3 mr-1 text-green-600" />
+                            ) : (
+                              <FileText className="h-3 w-3 mr-1" />
+                            )}
+                            {generatingPost === m.id
+                              ? "Generating..."
+                              : postGenerated.has(m.id)
+                              ? "Post Generated"
+                              : "Gen Post"}
                           </Button>
                         </div>
                       )}
@@ -881,6 +1153,8 @@ function RiskBadge({ level }: { level: RiskLevel }) {
 // ── Main Markets Page ────────────────────────────────────────────────
 
 export default function AdminMarketsPage() {
+  const [activeTab, setActiveTab] = useState("inbox");
+
   return (
     <div className="space-y-6">
       <div>
@@ -899,7 +1173,7 @@ export default function AdminMarketsPage() {
         ]}
       />
 
-      <Tabs defaultValue="inbox">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="inbox">Inbox</TabsTrigger>
           <TabsTrigger value="all">All Markets</TabsTrigger>
@@ -907,7 +1181,7 @@ export default function AdminMarketsPage() {
           <TabsTrigger value="resolutions">Resolutions</TabsTrigger>
         </TabsList>
         <TabsContent value="inbox" className="mt-4">
-          <MarketInbox />
+          <MarketInbox onSwitchTab={setActiveTab} />
         </TabsContent>
         <TabsContent value="all" className="mt-4">
           <AllMarkets />

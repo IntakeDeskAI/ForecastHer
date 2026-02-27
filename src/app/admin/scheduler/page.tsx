@@ -30,6 +30,7 @@ import {
   ExternalLink,
   Key,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { HowItWorks } from "@/components/how-it-works";
 
@@ -117,19 +118,51 @@ const SAMPLE_QUEUE: QueueEntry[] = [
   },
 ];
 
+function getWeekLabel(offset: number): string {
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7) + offset * 7);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (offset === 0) return `This Week (${fmt(monday)} – ${fmt(sunday)})`;
+  if (offset === -1) return `Last Week (${fmt(monday)} – ${fmt(sunday)})`;
+  if (offset === 1) return `Next Week (${fmt(monday)} – ${fmt(sunday)})`;
+  return `${fmt(monday)} – ${fmt(sunday)}`;
+}
+
 function CalendarView() {
+  const [weekOffset, setWeekOffset] = useState(0);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium">This Week</h3>
+        <h3 className="text-sm font-medium">{getWeekLabel(weekOffset)}</h3>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="text-xs">
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs"
+            onClick={() => setWeekOffset((o) => o - 1)}
+          >
             &larr; Prev
           </Button>
-          <Button variant="outline" size="sm" className="text-xs">
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs"
+            onClick={() => setWeekOffset(0)}
+            disabled={weekOffset === 0}
+          >
             Today
           </Button>
-          <Button variant="outline" size="sm" className="text-xs">
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs"
+            onClick={() => setWeekOffset((o) => o + 1)}
+          >
             Next &rarr;
           </Button>
         </div>
@@ -169,9 +202,60 @@ function CalendarView() {
 function QueueView() {
   const [posts, setPosts] = useState(SAMPLE_QUEUE);
   const [filter, setFilter] = useState<string>("all");
+  const [expandedPreview, setExpandedPreview] = useState<string | null>(null);
+  const [retryingAll, setRetryingAll] = useState(false);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
 
   const filteredPosts = filter === "all" ? posts : posts.filter((p) => p.status === filter);
   const failedCount = posts.filter((p) => p.status === "failed").length;
+
+  function handleRetryAllFailed() {
+    setRetryingAll(true);
+    setTimeout(() => {
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.status === "failed"
+            ? { ...p, status: "scheduled" as const, retry_count: 0, failure_reason: undefined, next_retry_at: undefined, token_error: false }
+            : p
+        )
+      );
+      setRetryingAll(false);
+    }, 800);
+  }
+
+  function handleRetry(id: string) {
+    setRetryingId(id);
+    setTimeout(() => {
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? { ...p, status: "scheduled" as const, retry_count: p.retry_count + 1, failure_reason: undefined, next_retry_at: undefined, token_error: false }
+            : p
+        )
+      );
+      setRetryingId(null);
+    }, 600);
+  }
+
+  function handlePause(id: string) {
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, status: "paused" as const } : p
+      )
+    );
+  }
+
+  function handleResume(id: string) {
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, status: "scheduled" as const } : p
+      )
+    );
+  }
+
+  function togglePreview(id: string) {
+    setExpandedPreview((prev) => (prev === id ? null : id));
+  }
 
   return (
     <div className="space-y-4">
@@ -201,8 +285,22 @@ function QueueView() {
             </Button>
           ))}
         </div>
-        <Button variant="outline" size="sm" className="text-xs gap-1">
-          <RotateCcw className="h-3 w-3" /> Retry All Failed
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs gap-1"
+          onClick={handleRetryAllFailed}
+          disabled={retryingAll || failedCount === 0}
+        >
+          {retryingAll ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" /> Retrying&hellip;
+            </>
+          ) : (
+            <>
+              <RotateCcw className="h-3 w-3" /> Retry All Failed
+            </>
+          )}
         </Button>
       </div>
 
@@ -335,7 +433,13 @@ function QueueView() {
 
                   {/* Actions */}
                   <div className="flex gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Preview">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-8 w-8 ${expandedPreview === post.id ? "bg-muted" : ""}`}
+                      title="Preview"
+                      onClick={() => togglePreview(post.id)}
+                    >
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
                     {post.status === "failed" && (
@@ -345,8 +449,18 @@ function QueueView() {
                           size="sm"
                           className="text-xs gap-1 border-red-200 text-red-600 hover:bg-red-50"
                           title="Retry now"
+                          onClick={() => handleRetry(post.id)}
+                          disabled={retryingId === post.id}
                         >
-                          <RotateCcw className="h-3 w-3" /> Retry
+                          {retryingId === post.id ? (
+                            <>
+                              <Loader2 className="h-3 w-3 animate-spin" /> Retrying&hellip;
+                            </>
+                          ) : (
+                            <>
+                              <RotateCcw className="h-3 w-3" /> Retry
+                            </>
+                          )}
                         </Button>
                         {post.token_error && (
                           <Link href="/admin/settings">
@@ -363,12 +477,24 @@ function QueueView() {
                       </>
                     )}
                     {post.status === "scheduled" && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Pause">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="Pause"
+                        onClick={() => handlePause(post.id)}
+                      >
                         <Pause className="h-3.5 w-3.5" />
                       </Button>
                     )}
                     {post.status === "paused" && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Resume">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="Resume"
+                        onClick={() => handleResume(post.id)}
+                      >
                         <Play className="h-3.5 w-3.5" />
                       </Button>
                     )}
@@ -379,6 +505,34 @@ function QueueView() {
                     )}
                   </div>
                 </div>
+
+                {/* Expanded preview */}
+                {expandedPreview === post.id && (
+                  <div className="mt-3 rounded-lg border border-border bg-muted/50 p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Full Preview
+                      </span>
+                      <Badge variant="outline" className="text-xs capitalize">{post.platform}</Badge>
+                    </div>
+                    <p className="text-sm leading-relaxed">{post.content_preview}</p>
+                    <div className="mt-3 grid grid-cols-3 gap-3 text-xs text-muted-foreground">
+                      <div>
+                        <span className="block text-muted-foreground/70">Scheduled</span>
+                        <span className="font-mono">{new Date(post.scheduled_at).toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="block text-muted-foreground/70">Status</span>
+                        <span className="capitalize font-semibold">{post.status}</span>
+                      </div>
+                      <div>
+                        <span className="block text-muted-foreground/70">Draft ID</span>
+                        <span className="font-mono">{post.draft_id}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}

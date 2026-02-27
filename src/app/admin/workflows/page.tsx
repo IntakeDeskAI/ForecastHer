@@ -24,10 +24,17 @@ import {
   ChevronRight,
   Workflow,
   Zap,
+  Loader2,
 } from "lucide-react";
 import { HowItWorks } from "@/components/how-it-works";
 
-const WORKFLOWS: (WorkflowDefinition & { steps_count: number; last_run?: WorkflowRun })[] = [
+type WorkflowData = WorkflowDefinition & {
+  steps_count: number;
+  last_run?: WorkflowRun;
+  last_run_label?: string;
+};
+
+const INITIAL_WORKFLOWS: WorkflowData[] = [
   {
     id: "market_of_the_day",
     name: "Market of the Day",
@@ -80,8 +87,26 @@ const WORKFLOWS: (WorkflowDefinition & { steps_count: number; last_run?: Workflo
   },
 ];
 
-function WorkflowCard({ workflow }: { workflow: typeof WORKFLOWS[number] }) {
+function WorkflowCard({
+  workflow,
+  onToggleActive,
+  onRunComplete,
+}: {
+  workflow: WorkflowData;
+  onToggleActive: (id: string) => void;
+  onRunComplete: (id: string) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  function handleRunNow() {
+    setRunning(true);
+    setTimeout(() => {
+      setRunning(false);
+      onRunComplete(workflow.id);
+    }, 1500);
+  }
 
   return (
     <Card>
@@ -106,16 +131,37 @@ function WorkflowCard({ workflow }: { workflow: typeof WORKFLOWS[number] }) {
               </span>
               <span>{workflow.steps_count} steps</span>
             </div>
+            {workflow.last_run_label && (
+              <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" />
+                Last run: {workflow.last_run_label} &mdash; completed
+              </p>
+            )}
           </div>
           <div className="flex gap-2 shrink-0">
-            <Button variant="outline" size="sm" className="text-xs">
-              <Play className="h-3 w-3 mr-1" /> Run Now
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={handleRunNow}
+              disabled={running}
+            >
+              {running ? (
+                <>
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Running&hellip;
+                </>
+              ) : (
+                <>
+                  <Play className="h-3 w-3 mr-1" /> Run Now
+                </>
+              )}
             </Button>
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8"
               title={workflow.is_active ? "Pause" : "Activate"}
+              onClick={() => onToggleActive(workflow.id)}
             >
               {workflow.is_active ? (
                 <Pause className="h-3.5 w-3.5" />
@@ -123,11 +169,45 @@ function WorkflowCard({ workflow }: { workflow: typeof WORKFLOWS[number] }) {
                 <Zap className="h-3.5 w-3.5" />
               )}
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" title="Configure">
-              <Settings className="h-3.5 w-3.5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              title="Configure"
+              onClick={() => setShowSettings(!showSettings)}
+            >
+              <Settings className={`h-3.5 w-3.5 transition-transform ${showSettings ? "rotate-90" : ""}`} />
             </Button>
           </div>
         </div>
+
+        {/* Settings section */}
+        {showSettings && (
+          <div className="mt-3 rounded-lg border border-border bg-muted/50 p-4 space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Workflow Settings</h4>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-muted-foreground">Schedule (cron)</span>
+                <p className="font-mono font-semibold">{workflow.schedule || "Manual"}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Steps</span>
+                <p className="font-semibold">{workflow.steps_count}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Created</span>
+                <p className="font-semibold">{workflow.created_at}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Status</span>
+                <p className="font-semibold">{workflow.is_active ? "Active" : "Inactive"}</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Full configuration editing will be available once OpenClaw is connected.
+            </p>
+          </div>
+        )}
 
         {/* Expandable run history */}
         <Button
@@ -142,9 +222,20 @@ function WorkflowCard({ workflow }: { workflow: typeof WORKFLOWS[number] }) {
 
         {expanded && (
           <div className="mt-2 rounded-lg border border-border overflow-hidden">
-            <div className="p-4 text-center text-xs text-muted-foreground">
-              No runs yet. Click &quot;Run Now&quot; to execute this workflow.
-            </div>
+            {workflow.last_run_label ? (
+              <div className="p-3">
+                <div className="flex items-center gap-2 text-xs">
+                  <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                  <span className="font-medium">Manual run</span>
+                  <span className="text-muted-foreground">&mdash; {workflow.last_run_label}</span>
+                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700">completed</Badge>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 text-center text-xs text-muted-foreground">
+                No runs yet. Click &quot;Run Now&quot; to execute this workflow.
+              </div>
+            )}
           </div>
         )}
       </CardContent>
@@ -153,6 +244,24 @@ function WorkflowCard({ workflow }: { workflow: typeof WORKFLOWS[number] }) {
 }
 
 export default function WorkflowsPage() {
+  const [workflows, setWorkflows] = useState<WorkflowData[]>(INITIAL_WORKFLOWS);
+
+  function handleToggleActive(id: string) {
+    setWorkflows((prev) =>
+      prev.map((w) =>
+        w.id === id ? { ...w, is_active: !w.is_active } : w
+      )
+    );
+  }
+
+  function handleRunComplete(id: string) {
+    setWorkflows((prev) =>
+      prev.map((w) =>
+        w.id === id ? { ...w, last_run_label: "just now" } : w
+      )
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -178,8 +287,13 @@ export default function WorkflowsPage() {
       />
 
       <div className="space-y-4">
-        {WORKFLOWS.map((w) => (
-          <WorkflowCard key={w.id} workflow={w} />
+        {workflows.map((w) => (
+          <WorkflowCard
+            key={w.id}
+            workflow={w}
+            onToggleActive={handleToggleActive}
+            onRunComplete={handleRunComplete}
+          />
         ))}
       </div>
     </div>
