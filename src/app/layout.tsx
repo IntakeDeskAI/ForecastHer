@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
+import { GoogleAnalytics } from "@/components/google-analytics";
+import { UtmCapture } from "@/components/utm-capture";
 
 const SITE_URL = "https://forecasther.ai";
 
@@ -163,6 +165,8 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
+        <GoogleAnalytics />
+        <UtmCapture />
         <Navbar />
         <main className="min-h-screen">{children}</main>
         <Footer />

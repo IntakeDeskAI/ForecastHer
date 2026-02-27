@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { trackWaitlistCtaClick } from "@/lib/analytics";
 
 const navLinks = [
   { href: "/markets", label: "Markets" },
@@ -93,7 +94,7 @@ export function Navbar() {
                   Log in
                 </Button>
               </Link>
-              <Link href={isLanding ? "#waitlist" : "/#waitlist"}>
+              <Link href={isLanding ? "#waitlist" : "/#waitlist"} onClick={() => trackWaitlistCtaClick("navbar")}>
                 <Button size="sm" className="gradient-purple text-white">
                   Join Waitlist
                 </Button>
@@ -143,7 +144,7 @@ export function Navbar() {
                       Log in
                     </Button>
                   </Link>
-                  <Link href={isLanding ? "#waitlist" : "/#waitlist"} onClick={() => setOpen(false)}>
+                  <Link href={isLanding ? "#waitlist" : "/#waitlist"} onClick={() => { setOpen(false); trackWaitlistCtaClick("mobile_menu"); }}>
                     <Button className="w-full gradient-purple text-white">
                       Join Waitlist
                     </Button>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { trackWaitlistSignup } from "@/lib/analytics";
 
 /** Strip to digits, enforce 10-digit US format: (XXX) XXX-XXXX */
 function formatPhone(raw: string): string {
@@ -55,6 +56,7 @@ export function WaitlistForm({ variant = "hero" }: WaitlistFormProps) {
       const data = await res.json();
       setPosition(data.position ?? null);
       setStatus("success");
+      trackWaitlistSignup({ position: data.position });
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Something went wrong.");
       setStatus("error");

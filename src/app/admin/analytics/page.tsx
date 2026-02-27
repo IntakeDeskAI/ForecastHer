@@ -33,6 +33,9 @@ import {
   MessageSquare,
   Share2,
   Sparkles,
+  ExternalLink,
+  CheckCircle,
+  Activity,
 } from "lucide-react";
 import {
   LineChart,
@@ -824,6 +827,124 @@ function HookLeaderboard() {
   );
 }
 
+function GA4LiveTab() {
+  const GA4_PROPERTY = "G-DL4ZFV877E";
+  const GA4_BASE = "https://analytics.google.com/analytics/web";
+
+  const reports = [
+    { label: "Realtime", desc: "Active users right now", url: `${GA4_BASE}/#/p/${GA4_PROPERTY}/realtime/overview` },
+    { label: "Acquisition Overview", desc: "Where visitors come from", url: `${GA4_BASE}/#/p/${GA4_PROPERTY}/reports/acquisition-overview` },
+    { label: "Traffic Acquisition", desc: "Source / medium / campaign breakdown", url: `${GA4_BASE}/#/p/${GA4_PROPERTY}/reports/acquisition-traffic-acquisition-v2` },
+    { label: "Pages & Screens", desc: "Top pages by views", url: `${GA4_BASE}/#/p/${GA4_PROPERTY}/reports/content-pages-and-screens` },
+    { label: "Events", desc: "All tracked events (signups, CTA clicks, etc.)", url: `${GA4_BASE}/#/p/${GA4_PROPERTY}/reports/events-in-events` },
+    { label: "Conversions", desc: "Key events marked as conversions", url: `${GA4_BASE}/#/p/${GA4_PROPERTY}/reports/conversions` },
+  ];
+
+  const trackedEvents = [
+    { name: "waitlist_cta_click", desc: "User clicks any \"Join Waitlist\" button", locations: "Navbar, homepage social strip, advisor CTA" },
+    { name: "waitlist_signup", desc: "Waitlist form submitted successfully", locations: "Hero form, footer form" },
+    { name: "market_view", desc: "Market detail page loaded", locations: "/markets/[id]" },
+    { name: "how_it_works_view", desc: "How It Works page loaded", locations: "/how-it-works" },
+    { name: "outbound_click", desc: "External link clicked", locations: "Footer, growth ops quick links" },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {reports.map((r) => (
+          <a key={r.label} href={r.url} target="_blank" rel="noopener noreferrer">
+            <Card className="hover:border-purple-300 transition-colors cursor-pointer h-full">
+              <CardContent className="pt-4 pb-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-sm font-semibold">{r.label}</span>
+                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+                <p className="text-xs text-muted-foreground">{r.desc}</p>
+              </CardContent>
+            </Card>
+          </a>
+        ))}
+      </div>
+
+      {/* Tracked Events Reference */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Activity className="h-4 w-4" /> Tracked Events
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Event Name</TableHead>
+                <TableHead className="text-xs">Description</TableHead>
+                <TableHead className="text-xs">Fires On</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {trackedEvents.map((evt) => (
+                <TableRow key={evt.name}>
+                  <TableCell className="font-mono text-xs text-purple-600">{evt.name}</TableCell>
+                  <TableCell className="text-xs">{evt.desc}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{evt.locations}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* UTM Attribution */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Link2 className="h-4 w-4" /> UTM Attribution
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            UTMs are automatically captured from incoming URLs and stored in a <code className="text-xs bg-muted px-1 py-0.5 rounded">fh_utm</code> cookie (7-day expiry).
+            On waitlist signup, UTM values are sent as GA4 event parameters for attribution.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg border p-3">
+              <p className="text-xs font-medium mb-1">Recommended UTM format</p>
+              <div className="text-xs text-muted-foreground font-mono space-y-0.5">
+                <p>utm_source: x, instagram, linkedin, email</p>
+                <p>utm_medium: social, dm, email</p>
+                <p>utm_campaign: wk1, wk2, evergreen</p>
+                <p>utm_content: motd_x_day01, recap_thread</p>
+              </div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs font-medium mb-1">Example link</p>
+              <p className="text-xs text-muted-foreground font-mono break-all">
+                forecasther.ai/?utm_source=x&amp;utm_medium=social&amp;utm_campaign=wk1&amp;utm_content=motd_day01
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Key metrics definition */}
+      <Card className="border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20">
+        <CardContent className="py-4 flex items-start gap-3">
+          <Sparkles className="h-5 w-5 text-purple-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium">CTR Definition</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              CTR = <code className="bg-muted px-1 rounded">waitlist_signups / waitlist_cta_clicks</code>.
+              This is the conversion rate from CTA click to actual signup.
+              Do not confuse with impressions-to-clicks (you don&apos;t have reliable impression data without platform APIs).
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AnalyticsPage() {
   const [range, setRange] = useState("7d");
   const [refreshing, setRefreshing] = useState(false);
@@ -875,17 +996,34 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Demo data banner - honest and unmistakable */}
-      <div className="rounded-lg border-2 border-amber-400 bg-amber-50 p-4 flex items-start gap-3">
-        <BarChart3 className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm font-semibold text-amber-800">Demo Data</p>
-          <p className="text-xs text-amber-700 mt-0.5">
-            All numbers on this page are sample data for layout demonstration only.
-            Real metrics will appear once platform tokens are connected and posts go live.
-            Do not use these numbers for any decisions.
+      {/* GA4 Status */}
+      <div className="rounded-lg border-2 border-green-300 bg-green-50 dark:bg-green-950/20 p-4 flex items-start gap-3">
+        <CheckCircle className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-green-800 dark:text-green-400">GA4 Connected</p>
+          <p className="text-xs text-green-700 dark:text-green-500 mt-0.5">
+            Google Analytics 4 is tracking pageviews, waitlist CTA clicks, waitlist signups, market views, and UTM attribution on the public site.
+            Use the &quot;GA4 Live&quot; tab to open your real-time dashboard.
           </p>
         </div>
+        <a
+          href="https://analytics.google.com/analytics/web/#/p/G-DL4ZFV877E"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0"
+        >
+          <Button variant="outline" size="sm" className="text-xs gap-1">
+            <ExternalLink className="h-3 w-3" /> Open GA4
+          </Button>
+        </a>
+      </div>
+
+      {/* Demo data note for sample tabs */}
+      <div className="rounded-lg border border-amber-300 bg-amber-50/50 dark:bg-amber-950/10 px-4 py-2 flex items-center gap-2">
+        <BarChart3 className="h-4 w-4 text-amber-500 shrink-0" />
+        <p className="text-xs text-amber-700 dark:text-amber-400">
+          Overview/Attribution/Creative/Topic tabs show sample data for layout demo. The <strong>GA4 Live</strong> tab links to real analytics.
+        </p>
       </div>
 
       <HowItWorks
@@ -898,14 +1036,16 @@ export default function AnalyticsPage() {
         ]}
       />
 
-      <Tabs defaultValue="overview">
+      <Tabs defaultValue="ga4-live">
         <TabsList>
+          <TabsTrigger value="ga4-live" className="gap-1"><Activity className="h-3.5 w-3.5" /> GA4 Live</TabsTrigger>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="attribution">Attribution</TabsTrigger>
           <TabsTrigger value="creative">Creative</TabsTrigger>
           <TabsTrigger value="topic">Topic</TabsTrigger>
           <TabsTrigger value="hooks">Hook Leaderboard</TabsTrigger>
         </TabsList>
+        <TabsContent value="ga4-live" className="mt-4"><GA4LiveTab /></TabsContent>
         <TabsContent value="overview" className="mt-4"><Overview range={range} /></TabsContent>
         <TabsContent value="attribution" className="mt-4"><Attribution /></TabsContent>
         <TabsContent value="creative" className="mt-4"><CreativePerformance /></TabsContent>
