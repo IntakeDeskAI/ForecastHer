@@ -148,6 +148,10 @@ function DraftQueue({
   const [bulkAction, setBulkAction] = useState<string | null>(null);
 
   const filtered = drafts.filter((d) => {
+    if (statusFilter === "exceptions") {
+      // Show items that fail compliance gates
+      return !passesComplianceGate(d) && d.status !== "approved" && d.status !== "scheduled" && d.status !== "posted";
+    }
     if (statusFilter !== "all" && d.status !== statusFilter) return false;
     if (platformFilter !== "all" && d.platform !== platformFilter) return false;
     return true;
@@ -161,12 +165,26 @@ function DraftQueue({
     }, 1500);
   }
 
+  function passesComplianceGate(d: ContentDraft): boolean {
+    const allPassed = d.compliance_checks.every((c) => c.passed);
+    const hasCitations = d.citations.length > 0;
+    return allPassed && hasCitations;
+  }
+
+  const blockedCount = drafts.filter(
+    (d) => !passesComplianceGate(d) && d.status !== "approved" && d.status !== "scheduled" && d.status !== "posted"
+  ).length;
+
   function handleApproveAllLowRisk() {
     setBulkAction("approving");
     setTimeout(() => {
       setDrafts((prev) =>
         prev.map((d) =>
-          d.risk_level === "low" && d.status !== "approved" && d.status !== "scheduled" && d.status !== "posted"
+          d.risk_level === "low" &&
+          d.status !== "approved" &&
+          d.status !== "scheduled" &&
+          d.status !== "posted" &&
+          passesComplianceGate(d)
             ? { ...d, status: "approved" as DraftStatus }
             : d
         )
@@ -206,6 +224,7 @@ function DraftQueue({
               <SelectItem value="scheduled">Scheduled</SelectItem>
               <SelectItem value="posted">Posted</SelectItem>
               <SelectItem value="blocked">Blocked</SelectItem>
+              <SelectItem value="exceptions">Exceptions ({blockedCount})</SelectItem>
             </SelectContent>
           </Select>
           <Select value={platformFilter} onValueChange={setPlatformFilter}>
@@ -253,6 +272,30 @@ function DraftQueue({
           </Button>
         </div>
       </div>
+
+      {/* Exceptions banner */}
+      {blockedCount > 0 && statusFilter !== "exceptions" && (
+        <div className="rounded-lg border-2 border-red-300 bg-red-50 p-3 flex items-start gap-3">
+          <XCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-red-800">
+              {blockedCount} draft{blockedCount > 1 ? "s" : ""} blocked by compliance gates
+            </p>
+            <p className="text-xs text-red-700 mt-0.5">
+              Items missing citations or failing compliance checks cannot be approved or scheduled.
+              Fix the issues or use the &quot;Exceptions&quot; filter to review them.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs border-red-300 text-red-700 shrink-0"
+            onClick={() => setStatusFilter("exceptions")}
+          >
+            View Exceptions
+          </Button>
+        </div>
+      )}
 
       {filtered.length === 0 && drafts.length === 0 ? (
         <Card className="border-dashed border-2">
@@ -360,6 +403,7 @@ function DraftQueue({
                 <TableHead>Risk</TableHead>
                 <TableHead>Citations</TableHead>
                 <TableHead>Disclosure</TableHead>
+                <TableHead>Gate</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -392,6 +436,13 @@ function DraftQueue({
                       <CheckCircle className="h-3.5 w-3.5 text-green-500" />
                     ) : (
                       <XCircle className="h-3.5 w-3.5 text-red-400" />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {passesComplianceGate(d) ? (
+                      <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">Pass</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] bg-red-50 text-red-700 border-red-200">Blocked</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
@@ -733,7 +784,12 @@ function DraftEditor() {
         </Card>
 
         {/* Approval Workflow */}
-        {sentToScheduler ? (
+        {(() => {
+          const allChecksPassed = complianceChecks.every((c) => c.passed);
+          const hasCitationsForApproval = citations.length > 0;
+          const complianceGatePassed = allChecksPassed && hasCitationsForApproval;
+
+          return sentToScheduler ? (
           <div className="rounded-lg border-2 border-green-200 bg-green-50 p-4 text-center">
             <CheckCircle className="h-6 w-6 text-green-600 mx-auto mb-2" />
             <p className="text-sm font-semibold text-green-800">Sent to Scheduler</p>
@@ -753,12 +809,25 @@ function DraftEditor() {
             </Button>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
+            {!complianceGatePassed && (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-red-800">Compliance gate blocking approval</p>
+                  <p className="text-xs text-red-700 mt-0.5">
+                    {!hasCitationsForApproval ? "Add at least one citation. " : ""}
+                    {!allChecksPassed ? "Fix failing compliance checks above." : ""}
+                  </p>
+                </div>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2">
             <Button
               variant={copyApproved ? "default" : "outline"}
               size="sm"
               className={copyApproved ? "bg-green-600 hover:bg-green-700 text-white" : ""}
-              disabled={locked}
+              disabled={locked || !complianceGatePassed}
               onClick={() => setCopyApproved(!copyApproved)}
             >
               <CheckCircle className="h-3.5 w-3.5 mr-1" />
@@ -803,8 +872,10 @@ function DraftEditor() {
               )}
               {sending ? "Sending..." : "Send to Scheduler"}
             </Button>
+            </div>
           </div>
-        )}
+        );
+        })()}
       </div>
     </div>
   );

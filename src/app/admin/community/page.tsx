@@ -41,10 +41,11 @@ function Suggestions() {
       <Card>
         <CardContent className="py-12 text-center text-muted-foreground">
           <Inbox className="h-8 w-8 mx-auto mb-3 opacity-50" />
-          <p className="text-sm font-medium">No community suggestions yet.</p>
-          <p className="text-xs mt-1">Suggestions will appear here once the community form is live.</p>
+          <p className="text-sm font-medium">No community suggestions yet</p>
+          <p className="text-xs mt-1">Suggestions will appear here once the community form is live on the public site.</p>
           <p className="text-xs mt-3 text-muted-foreground/70">
-            Tip: Share your suggestion form link on social media to start collecting market ideas from the community.
+            <span className="font-semibold">What to do next:</span> Share your suggestion form link on social media to start collecting market ideas.
+            Community suggestions go through auto-tagging and spam filtering before landing here.
           </p>
         </CardContent>
       </Card>

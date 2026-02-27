@@ -567,6 +567,18 @@ export default function SchedulerPage() {
         </p>
       </div>
 
+      {/* Demo data banner */}
+      <div className="rounded-lg border-2 border-amber-400 bg-amber-50 p-4 flex items-start gap-3">
+        <CalendarIcon className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-amber-800">Demo Data</p>
+          <p className="text-xs text-amber-700 mt-0.5">
+            Queue entries below are sample data showing how the scheduler works.
+            Real posts will appear here once you approve drafts in Content Studio and schedule them.
+          </p>
+        </div>
+      </div>
+
       <HowItWorks
         steps={[
           "Calendar: See the week at a glance — which platforms have posts on which days. Navigate with Prev/Today/Next.",

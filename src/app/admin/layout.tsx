@@ -23,7 +23,6 @@ import {
   Menu,
   X,
   Activity,
-  AlertTriangle,
   Sparkles,
   Rocket,
 } from "lucide-react";
@@ -50,7 +49,6 @@ export default function AdminLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [autopostEnabled, setAutopostEnabled] = useState(false);
-  const [alertCount] = useState(2);
 
   function isActive(href: string) {
     if (href === "/admin") return pathname === "/admin";
@@ -139,8 +137,8 @@ export default function AdminLayout({
                 className="scale-75"
               />
             </div>
-            <Badge variant="outline" className="text-xs w-full justify-center">
-              dev
+            <Badge variant="outline" className="text-xs w-full justify-center border-amber-200 bg-amber-50 text-amber-700">
+              Pre-launch
             </Badge>
           </div>
         )}
@@ -159,23 +157,15 @@ export default function AdminLayout({
             >
               <Menu className="h-4 w-4" />
             </Button>
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs border-amber-200 bg-amber-50 text-amber-700">
               <Activity className="h-3 w-3 mr-1" />
-              dev
+              Pre-launch
             </Badge>
           </div>
 
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="h-8 w-8 relative">
               <Bell className="h-4 w-4" />
-              {alertCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
-                  {alertCount}
-                </span>
-              )}
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             </Button>
           </div>
         </header>
