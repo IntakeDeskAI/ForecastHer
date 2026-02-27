@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -136,12 +136,35 @@ export default function GrowthOpsTodayPage() {
     { type: "Distribution", count: 0 },
     { type: "Signups", count: 0 },
   ]);
-  const [metrics] = useState({
+  const [metrics, setMetrics] = useState({
     signups: 0,
     clicks: 0,
+    impressions: 0,
     bestPost: "—",
     bestChannel: "—",
   });
+
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/growth-ops/metrics?range=today");
+      if (!res.ok) return;
+      const data = await res.json();
+      setMetrics({
+        signups: data.today.signups ?? 0,
+        clicks: data.today.clicks ?? 0,
+        impressions: data.today.impressions ?? 0,
+        bestPost: data.today.best_post_url ?? "—",
+        bestChannel: data.today.best_channel ?? "—",
+      });
+    } catch {
+      // Silent fail — keeps showing zeros
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMetrics();
+  }, [fetchMetrics]);
+
   const [generatingPack, setGeneratingPack] = useState(false);
   const [packError, setPackError] = useState("");
   const [packGenerated, setPackGenerated] = useState(false);
