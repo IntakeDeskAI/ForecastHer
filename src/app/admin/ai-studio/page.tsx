@@ -626,6 +626,10 @@ function GenerateTab({ runs, setRuns }: { runs: AIRunLog[]; setRuns: React.Dispa
     });
     setRuns((prev) => [newRun, ...prev]);
     setRunningStep(null);
+    // Persist trend scan completion for Command Center setup checklist
+    if (stepType === "trend_scan") {
+      try { localStorage.setItem("fh_first_trend_scan_run", "true"); } catch { /* ignore */ }
+    }
   }
 
   // Run full pipeline
@@ -652,6 +656,8 @@ function GenerateTab({ runs, setRuns }: { runs: AIRunLog[]; setRuns: React.Dispa
     }
     setPipelineProgress(100);
     setRunningStep(null);
+    // Pipeline includes a trend scan — persist completion
+    try { localStorage.setItem("fh_first_trend_scan_run", "true"); } catch { /* ignore */ }
     await new Promise((r) => setTimeout(r, 400));
     setRunningPipeline(false);
     setPipelineProgress(0);

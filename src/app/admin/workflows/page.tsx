@@ -244,14 +244,38 @@ function WorkflowCard({
 }
 
 export default function WorkflowsPage() {
-  const [workflows, setWorkflows] = useState<WorkflowData[]>(INITIAL_WORKFLOWS);
+  const [workflows, setWorkflows] = useState<WorkflowData[]>(() => {
+    // Restore persisted active states from localStorage
+    if (typeof window === "undefined") return INITIAL_WORKFLOWS;
+    try {
+      const saved = localStorage.getItem("fh_workflows_state");
+      if (saved) {
+        const activeIds: string[] = JSON.parse(saved);
+        return INITIAL_WORKFLOWS.map((w) => ({
+          ...w,
+          is_active: activeIds.includes(w.id),
+        }));
+      }
+    } catch { /* ignore */ }
+    return INITIAL_WORKFLOWS;
+  });
+
+  function persistWorkflowState(updated: WorkflowData[]) {
+    try {
+      const activeIds = updated.filter((w) => w.is_active).map((w) => w.id);
+      localStorage.setItem("fh_workflows_state", JSON.stringify(activeIds));
+      localStorage.setItem("fh_workflows_active_count", String(activeIds.length));
+    } catch { /* ignore */ }
+  }
 
   function handleToggleActive(id: string) {
-    setWorkflows((prev) =>
-      prev.map((w) =>
+    setWorkflows((prev) => {
+      const updated = prev.map((w) =>
         w.id === id ? { ...w, is_active: !w.is_active } : w
-      )
-    );
+      );
+      persistWorkflowState(updated);
+      return updated;
+    });
   }
 
   function handleRunComplete(id: string) {
