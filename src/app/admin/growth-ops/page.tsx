@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,11 @@ import {
   MousePointerClick,
   UserPlus,
   AlertTriangle,
+  Wand2,
+  RotateCcw,
+  ThumbsUp,
+  ThumbsDown,
+  X,
 } from "lucide-react";
 import { HowItWorks } from "@/components/how-it-works";
 
@@ -60,7 +66,7 @@ import { HowItWorks } from "@/components/how-it-works";
    ═══════════════════════════════════════════════════════════════════════ */
 
 type TaskStatus = "not_started" | "in_progress" | "posted" | "done" | "blocked";
-type Channel = "x" | "ig" | "tiktok" | "linkedin" | "reddit" | "email" | "dm";
+type Channel = "x" | "ig" | "tiktok" | "linkedin" | "reddit" | "pinterest" | "email" | "dm";
 
 interface GrowthTask {
   id: string;
@@ -116,6 +122,7 @@ const CHANNEL_LABELS: Record<Channel | "multi", string> = {
   tiktok: "TikTok",
   linkedin: "LinkedIn",
   reddit: "Reddit",
+  pinterest: "Pinterest",
   email: "Email",
   dm: "DM",
   multi: "Multi",
@@ -127,6 +134,7 @@ const CHANNEL_COLORS: Record<Channel | "multi", string> = {
   tiktok: "bg-black text-white",
   linkedin: "bg-blue-600 text-white",
   reddit: "bg-orange-600 text-white",
+  pinterest: "bg-red-600 text-white",
   email: "bg-green-600 text-white",
   dm: "bg-purple-600 text-white",
   multi: "bg-gray-600 text-white",
@@ -158,6 +166,33 @@ interface CalendarDay {
   week: number;
   theme: string;
   tasks: string[];
+}
+
+// Maps task keywords to admin page links
+const TASK_LINKS: { pattern: RegExp; href: string; label: string }[] = [
+  { pattern: /market preview cards|market cards/i, href: "/admin/content?tab=assets", label: "Asset Generator" },
+  { pattern: /scripts|script library/i, href: "/admin/growth-ops?tab=scripts", label: "Script Library" },
+  { pattern: /market of the day/i, href: "/admin/content?tab=editor", label: "Content Editor" },
+  { pattern: /weekly digest email/i, href: "/admin/growth-ops?tab=scripts", label: "Email Template" },
+  { pattern: /suggest a market.*thread/i, href: "/admin/growth-ops?tab=scripts", label: "Thread Template" },
+  { pattern: /reddit.*post|reddit.*value/i, href: "/admin/growth-ops?tab=scripts", label: "Reddit Template" },
+  { pattern: /outreach.*sprint|partner outreach|creator outreach|press outreach|collab/i, href: "/admin/growth-ops?tab=leads", label: "Leads & Outreach" },
+  { pattern: /dms|dm follow/i, href: "/admin/growth-ops?tab=leads", label: "Leads & Outreach" },
+  { pattern: /prep.*week|prep.*assets|prep.*markets/i, href: "/admin/ai-studio", label: "AI Studio" },
+  { pattern: /report|weekly report|monthly report|weekly metrics|month recap/i, href: "/admin/growth-ops?tab=reporting", label: "Reporting" },
+  { pattern: /update script library|best hooks/i, href: "/admin/growth-ops?tab=scripts", label: "Script Library" },
+  { pattern: /analytics/i, href: "/admin/analytics", label: "Analytics" },
+  { pattern: /x thread|week recap.*thread/i, href: "/admin/content?tab=editor", label: "Content Editor" },
+  { pattern: /tiktok|clip for tiktok/i, href: "/admin/content?tab=assets", label: "Asset Generator" },
+  { pattern: /social proof|waitlist count/i, href: "/admin/analytics", label: "Analytics" },
+  { pattern: /founding 500/i, href: "/admin/content?tab=assets", label: "Asset Generator" },
+];
+
+function getTaskLink(task: string): { href: string; label: string } | null {
+  for (const link of TASK_LINKS) {
+    if (link.pattern.test(task)) return { href: link.href, label: link.label };
+  }
+  return null;
 }
 
 const CALENDAR: CalendarDay[] = [
@@ -502,6 +537,27 @@ Beta credits only, no cash value.`,
     variables: ["market (x3)", "date (x3)", "signal (x2)", "link"],
     notes: "Keep email under 200 words. Subject line A/B test: use numbers or controversy. Send Monday morning.",
   },
+  {
+    id: "s-10",
+    name: "Pinterest Pin",
+    channel: "pinterest",
+    template: `[Pin Title]
+Will [event] happen by [date]?
+
+The forecast:
+• YES because: [reason]
+• NO because: [reason]
+
+How this market resolves:
+Source: [source]
+Criteria: [one sentence]
+
+ForecastHer — prediction markets for women's health.
+Pre-launch. Beta credits only, no cash value.
+Join the waitlist: [UTM link]`,
+    variables: ["event", "date", "reason (x2)", "source", "criteria", "UTM link"],
+    notes: "Use a vertical market card image (1000×1500px). Add to a \"ForecastHer Markets\" board. Keyword-rich title helps Pinterest SEO. Add 5-10 relevant hashtags.",
+  },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -620,12 +676,23 @@ function CalendarTab() {
                   {isExpanded && (
                     <CardContent className="pt-0 pb-3 px-3 pl-14">
                       <ol className="space-y-1.5">
-                        {day.tasks.map((task, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm">
-                            <span className="text-xs font-mono text-muted-foreground mt-0.5 w-4 shrink-0">{i + 1}.</span>
-                            <span>{task}</span>
-                          </li>
-                        ))}
+                        {day.tasks.map((task, i) => {
+                          const link = getTaskLink(task);
+                          return (
+                            <li key={i} className="flex items-start gap-2 text-sm">
+                              <span className="text-xs font-mono text-muted-foreground mt-0.5 w-4 shrink-0">{i + 1}.</span>
+                              <span className="flex-1">{task}</span>
+                              {link && (
+                                <Link href={link.href} className="shrink-0">
+                                  <Badge variant="outline" className="text-[10px] gap-1 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-950/20">
+                                    <ExternalLink className="h-2.5 w-2.5" />
+                                    {link.label}
+                                  </Badge>
+                                </Link>
+                              )}
+                            </li>
+                          );
+                        })}
                       </ol>
                     </CardContent>
                   )}
@@ -1001,10 +1068,37 @@ function TaskQueueTab() {
    TAB 3: SCRIPT LIBRARY
    ═══════════════════════════════════════════════════════════════════════ */
 
+interface ApprovedDraft {
+  id: string;
+  scriptName: string;
+  channel: Channel | "multi";
+  text: string;
+  approvedAt: string;
+}
+
+interface AIDraftState {
+  scriptId: string;
+  status: "context" | "generating" | "review" | "error";
+  draft: string;
+  editedDraft: string;
+  error: string | null;
+  model: string | null;
+  context: {
+    marketQuestion: string;
+    resolveDate: string;
+    source: string;
+    category: string;
+    recipientName: string;
+  };
+}
+
 function ScriptLibraryTab() {
   const [expandedScript, setExpandedScript] = useState<string | null>("s-1");
   const [copied, setCopied] = useState<string | null>(null);
   const [filterChannel, setFilterChannel] = useState<string>("all");
+  const [aiDraft, setAiDraft] = useState<AIDraftState | null>(null);
+  const [approvedDrafts, setApprovedDrafts] = useState<ApprovedDraft[]>([]);
+  const [showApproved, setShowApproved] = useState(false);
 
   function handleCopy(id: string, text: string) {
     navigator.clipboard.writeText(text);
@@ -1012,40 +1106,186 @@ function ScriptLibraryTab() {
     setTimeout(() => setCopied(null), 2000);
   }
 
+  function startAIDraft(script: Script) {
+    setAiDraft({
+      scriptId: script.id,
+      status: "context",
+      draft: "",
+      editedDraft: "",
+      error: null,
+      model: null,
+      context: {
+        marketQuestion: "",
+        resolveDate: "",
+        source: "",
+        category: "Women's Health",
+        recipientName: "",
+      },
+    });
+  }
+
+  function cancelAIDraft() {
+    setAiDraft(null);
+  }
+
+  async function generateDraft(script: Script) {
+    if (!aiDraft) return;
+    setAiDraft({ ...aiDraft, status: "generating", error: null });
+
+    try {
+      const res = await fetch("/api/admin/growth-ops/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          template: script.template,
+          scriptName: script.name,
+          channel: script.channel,
+          context: aiDraft.context,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        setAiDraft({
+          ...aiDraft,
+          status: "error",
+          error: data.error || "Generation failed. Try again.",
+        });
+        return;
+      }
+
+      setAiDraft({
+        ...aiDraft,
+        status: "review",
+        draft: data.draft,
+        editedDraft: data.draft,
+        model: data.model || null,
+        error: null,
+      });
+    } catch (err) {
+      setAiDraft({
+        ...aiDraft,
+        status: "error",
+        error: err instanceof Error ? err.message : "Network error. Try again.",
+      });
+    }
+  }
+
+  function approveDraft(script: Script) {
+    if (!aiDraft) return;
+    const approved: ApprovedDraft = {
+      id: `ad-${Date.now()}`,
+      scriptName: script.name,
+      channel: script.channel,
+      text: aiDraft.editedDraft,
+      approvedAt: new Date().toISOString(),
+    };
+    setApprovedDrafts((prev) => [approved, ...prev]);
+    handleCopy(`approved-${approved.id}`, aiDraft.editedDraft);
+    setAiDraft(null);
+  }
+
   const filtered = filterChannel === "all"
     ? SCRIPTS
     : SCRIPTS.filter((s) => s.channel === filterChannel);
+
+  const hasDMs = (scriptId: string) => scriptId === "s-6" || scriptId === "s-7";
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {SCRIPTS.length} reusable templates. Click to expand, copy, and customize.
+          {SCRIPTS.length} reusable templates. Click to expand, use AI Draft to auto-fill, then approve or edit.
         </p>
-        <Select value={filterChannel} onValueChange={setFilterChannel}>
-          <SelectTrigger className="w-32 h-8 text-xs">
-            <SelectValue placeholder="Channel" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Channels</SelectItem>
-            <SelectItem value="x">X</SelectItem>
-            <SelectItem value="linkedin">LinkedIn</SelectItem>
-            <SelectItem value="ig">Instagram</SelectItem>
-            <SelectItem value="tiktok">TikTok</SelectItem>
-            <SelectItem value="reddit">Reddit</SelectItem>
-            <SelectItem value="email">Email</SelectItem>
-            <SelectItem value="dm">DM</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          {approvedDrafts.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs gap-1"
+              onClick={() => setShowApproved(!showApproved)}
+            >
+              <ThumbsUp className="h-3 w-3" />
+              Approved ({approvedDrafts.length})
+            </Button>
+          )}
+          <Select value={filterChannel} onValueChange={setFilterChannel}>
+            <SelectTrigger className="w-32 h-8 text-xs">
+              <SelectValue placeholder="Channel" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Channels</SelectItem>
+              <SelectItem value="x">X</SelectItem>
+              <SelectItem value="linkedin">LinkedIn</SelectItem>
+              <SelectItem value="ig">Instagram</SelectItem>
+              <SelectItem value="tiktok">TikTok</SelectItem>
+              <SelectItem value="pinterest">Pinterest</SelectItem>
+              <SelectItem value="reddit">Reddit</SelectItem>
+              <SelectItem value="email">Email</SelectItem>
+              <SelectItem value="dm">DM</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {/* Approved drafts drawer */}
+      {showApproved && approvedDrafts.length > 0 && (
+        <Card className="border-green-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <ThumbsUp className="h-4 w-4 text-green-600" /> Approved Drafts
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {approvedDrafts.map((draft) => (
+              <div key={draft.id} className="rounded-lg border border-border p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge className={`text-[10px] ${CHANNEL_COLORS[draft.channel]}`}>
+                      {CHANNEL_LABELS[draft.channel]}
+                    </Badge>
+                    <span className="text-xs font-medium">{draft.scriptName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(draft.approvedAt).toLocaleDateString()}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-[10px] gap-1"
+                      onClick={() => handleCopy(draft.id, draft.text)}
+                    >
+                      {copied === draft.id ? (
+                        <><CheckCircle className="h-2.5 w-2.5 text-green-600" /> Copied</>
+                      ) : (
+                        <><Copy className="h-2.5 w-2.5" /> Copy</>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <pre className="text-xs whitespace-pre-wrap bg-muted/30 rounded p-2 font-mono max-h-32 overflow-y-auto">
+                  {draft.text}
+                </pre>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {filtered.map((script) => {
         const isExpanded = expandedScript === script.id;
+        const isAIDrafting = aiDraft?.scriptId === script.id;
+
         return (
           <Card key={script.id} className={isExpanded ? "border-purple-200" : ""}>
             <button
               className="w-full flex items-center gap-3 p-4 text-left cursor-pointer"
-              onClick={() => setExpandedScript(isExpanded ? null : script.id)}
+              onClick={() => {
+                setExpandedScript(isExpanded ? null : script.id);
+                if (isAIDrafting && isExpanded) setAiDraft(null);
+              }}
             >
               <Badge className={`text-[10px] shrink-0 ${CHANNEL_COLORS[script.channel]}`}>
                 {CHANNEL_LABELS[script.channel]}
@@ -1064,27 +1304,242 @@ function ScriptLibraryTab() {
             </button>
             {isExpanded && (
               <CardContent className="pt-0 pb-4 space-y-3">
+                {/* Template display */}
                 <div className="relative">
                   <pre className="text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-4 border border-border font-mono leading-relaxed">
                     {script.template}
                   </pre>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="absolute top-2 right-2 text-xs gap-1 h-7"
-                    onClick={() => handleCopy(script.id, script.template)}
-                  >
-                    {copied === script.id ? (
-                      <><CheckCircle className="h-3 w-3 text-green-600" /> Copied</>
-                    ) : (
-                      <><Copy className="h-3 w-3" /> Copy</>
-                    )}
-                  </Button>
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs gap-1 h-7"
+                      onClick={() => handleCopy(script.id, script.template)}
+                    >
+                      {copied === script.id ? (
+                        <><CheckCircle className="h-3 w-3 text-green-600" /> Copied</>
+                      ) : (
+                        <><Copy className="h-3 w-3" /> Copy</>
+                      )}
+                    </Button>
+                  </div>
                 </div>
+
                 {script.notes && (
                   <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 p-3">
                     <Sparkles className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                     <p className="text-xs text-muted-foreground">{script.notes}</p>
+                  </div>
+                )}
+
+                {/* AI Draft Button — shows when not drafting */}
+                {!isAIDrafting && (
+                  <Button
+                    className="gradient-purple text-white text-xs gap-1.5"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); startAIDraft(script); }}
+                  >
+                    <Wand2 className="h-3.5 w-3.5" />
+                    AI Draft — Fill Variables Automatically
+                  </Button>
+                )}
+
+                {/* AI Draft Flow */}
+                {isAIDrafting && aiDraft && (
+                  <div className="rounded-lg border-2 border-purple-200 bg-purple-50/30 dark:bg-purple-950/10 p-4 space-y-4">
+                    {/* Step 1: Context */}
+                    {(aiDraft.status === "context" || aiDraft.status === "error") && (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Wand2 className="h-4 w-4 text-purple-600" />
+                            <span className="text-sm font-semibold text-purple-900 dark:text-purple-300">
+                              AI Draft — Provide Context
+                            </span>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={cancelAIDraft}>
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-1 md:col-span-2">
+                            <Label className="text-xs">Market Question *</Label>
+                            <Textarea
+                              className="text-xs h-16"
+                              placeholder="Will a new non-hormonal menopause treatment receive full FDA approval in 2026?"
+                              value={aiDraft.context.marketQuestion}
+                              onChange={(e) => setAiDraft({
+                                ...aiDraft,
+                                context: { ...aiDraft.context, marketQuestion: e.target.value },
+                              })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Resolve Date</Label>
+                            <Input
+                              type="date"
+                              className="h-8 text-xs"
+                              value={aiDraft.context.resolveDate}
+                              onChange={(e) => setAiDraft({
+                                ...aiDraft,
+                                context: { ...aiDraft.context, resolveDate: e.target.value },
+                              })}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Category</Label>
+                            <Select
+                              value={aiDraft.context.category}
+                              onValueChange={(v) => setAiDraft({
+                                ...aiDraft,
+                                context: { ...aiDraft.context, category: v },
+                              })}
+                            >
+                              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Women's Health">Women&apos;s Health</SelectItem>
+                                <SelectItem value="Fertility">Fertility</SelectItem>
+                                <SelectItem value="FemTech">FemTech</SelectItem>
+                                <SelectItem value="Wellness">Wellness</SelectItem>
+                                <SelectItem value="Culture">Culture</SelectItem>
+                                <SelectItem value="Business">Business</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Resolution Source / Criteria</Label>
+                            <Input
+                              className="h-8 text-xs"
+                              placeholder="FDA press release or official approval letter"
+                              value={aiDraft.context.source}
+                              onChange={(e) => setAiDraft({
+                                ...aiDraft,
+                                context: { ...aiDraft.context, source: e.target.value },
+                              })}
+                            />
+                          </div>
+                          {hasDMs(script.id) && (
+                            <div className="space-y-1">
+                              <Label className="text-xs">Recipient Name</Label>
+                              <Input
+                                className="h-8 text-xs"
+                                placeholder="Name or handle"
+                                value={aiDraft.context.recipientName}
+                                onChange={(e) => setAiDraft({
+                                  ...aiDraft,
+                                  context: { ...aiDraft.context, recipientName: e.target.value },
+                                })}
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {aiDraft.error && (
+                          <div className="flex items-start gap-2 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 p-3">
+                            <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                            <p className="text-xs text-red-700 dark:text-red-400">{aiDraft.error}</p>
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          <Button
+                            className="gradient-purple text-white text-xs gap-1.5"
+                            size="sm"
+                            disabled={!aiDraft.context.marketQuestion.trim()}
+                            onClick={() => generateDraft(script)}
+                          >
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Generate Draft
+                          </Button>
+                          <Button variant="outline" size="sm" className="text-xs" onClick={cancelAIDraft}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Step 2: Generating */}
+                    {aiDraft.status === "generating" && (
+                      <div className="flex flex-col items-center justify-center py-8 gap-3">
+                        <Loader2 className="h-8 w-8 text-purple-600 animate-spin" />
+                        <div className="text-center">
+                          <p className="text-sm font-medium">Generating draft...</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            AI is filling in the template variables with real content.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 3: Review */}
+                    {aiDraft.status === "review" && (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-purple-600" />
+                            <span className="text-sm font-semibold text-purple-900 dark:text-purple-300">
+                              AI Draft — Review &amp; Approve
+                            </span>
+                          </div>
+                          {aiDraft.model && (
+                            <Badge variant="outline" className="text-[10px]">
+                              {aiDraft.model}
+                            </Badge>
+                          )}
+                        </div>
+
+                        <Textarea
+                          className="font-mono text-sm leading-relaxed min-h-[200px]"
+                          value={aiDraft.editedDraft}
+                          onChange={(e) => setAiDraft({ ...aiDraft, editedDraft: e.target.value })}
+                        />
+
+                        {aiDraft.editedDraft !== aiDraft.draft && (
+                          <p className="text-[10px] text-amber-600 flex items-center gap-1">
+                            <Pencil className="h-3 w-3" /> You&apos;ve made edits to the AI draft.
+                          </p>
+                        )}
+
+                        <div className="flex gap-2 flex-wrap">
+                          <Button
+                            size="sm"
+                            className="text-xs gap-1.5 bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => approveDraft(script)}
+                          >
+                            <ThumbsUp className="h-3.5 w-3.5" />
+                            Approve &amp; Copy
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs gap-1.5"
+                            onClick={() => generateDraft(script)}
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            Regenerate
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs gap-1.5"
+                            onClick={() => setAiDraft({ ...aiDraft, status: "context" })}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Change Context
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs gap-1.5 text-red-600 hover:text-red-700"
+                            onClick={cancelAIDraft}
+                          >
+                            <ThumbsDown className="h-3.5 w-3.5" />
+                            Discard
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -1222,6 +1677,7 @@ function LeadsTab() {
                     <SelectItem value="email">Email</SelectItem>
                     <SelectItem value="x">X</SelectItem>
                     <SelectItem value="linkedin">LinkedIn</SelectItem>
+                    <SelectItem value="pinterest">Pinterest</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
