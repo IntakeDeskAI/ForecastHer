@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1647,9 +1648,31 @@ function RiskBadge({ level }: { level: RiskLevel }) {
 
 // ── Main Content Studio Page ─────────────────────────────────────────
 
+const VALID_CONTENT_TABS = ["queue", "editor", "assets", "templates", "style"];
+
 export default function ContentStudioPage() {
-  const [activeTab, setActiveTab] = useState("queue");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTabState] = useState(
+    VALID_CONTENT_TABS.includes(tabParam ?? "") ? tabParam! : "queue"
+  );
   const [drafts, setDrafts] = useState<ContentDraft[]>([]);
+
+  // Sync tab state when URL changes (e.g. from deep links)
+  useEffect(() => {
+    const urlTab = searchParams.get("tab");
+    if (urlTab && VALID_CONTENT_TABS.includes(urlTab) && urlTab !== activeTab) {
+      setActiveTabState(urlTab);
+    }
+  }, [searchParams, activeTab]);
+
+  function setActiveTab(tab: string) {
+    setActiveTabState(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }
 
   return (
     <div className="space-y-6">
