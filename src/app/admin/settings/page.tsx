@@ -28,6 +28,12 @@ import { Separator } from "@/components/ui/separator";
 import type { Platform } from "@/lib/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Users,
   ScrollText,
   AlertTriangle,
@@ -39,6 +45,11 @@ import {
   Loader2,
   Trash2,
   UserPlus,
+  HelpCircle,
+  ChevronDown,
+  Info,
+  ShieldAlert,
+  Copy,
 } from "lucide-react";
 import { HowItWorks } from "@/components/how-it-works";
 
@@ -56,7 +67,19 @@ interface StoredToken {
 // Platform display config
 const PLATFORM_CONFIG: Record<
   Platform,
-  { label: string; color: string; icon: string; keyLabel: string; keyPlaceholder: string; helpText: string }
+  {
+    label: string;
+    color: string;
+    icon: string;
+    keyLabel: string;
+    keyPlaceholder: string;
+    helpText: string;
+    portalUrl: string;
+    portalName: string;
+    tokenTooltip: string;
+    howToSteps: string[];
+    expiryNote: string | null;
+  }
 > = {
   x: {
     label: "X (Twitter)",
@@ -65,6 +88,18 @@ const PLATFORM_CONFIG: Record<
     keyLabel: "API Bearer Token",
     keyPlaceholder: "AAAA...",
     helpText: "From your X Developer Portal app → Authentication → Bearer Token.",
+    portalUrl: "https://developer.x.com/en/portal/dashboard",
+    portalName: "X Developer Portal",
+    tokenTooltip: "A Bearer Token authenticates API requests on behalf of your X app. It does not expire unless regenerated.",
+    howToSteps: [
+      "Go to developer.x.com and sign in with your X account.",
+      "Create a Project, then create an App inside it (or use an existing one).",
+      "Navigate to your App → \"Keys and tokens\" tab.",
+      "Under \"Bearer Token\", click \"Generate\" (or \"Regenerate\" if one exists).",
+      "Copy the token immediately — it won't be shown again.",
+      "Paste the Bearer Token here and click \"Test Connection\" to verify.",
+    ],
+    expiryNote: null,
   },
   instagram: {
     label: "Instagram",
@@ -73,6 +108,18 @@ const PLATFORM_CONFIG: Record<
     keyLabel: "Access Token",
     keyPlaceholder: "IGQ...",
     helpText: "Requires Facebook Business account. Generate a long-lived token from Graph API Explorer.",
+    portalUrl: "https://developers.facebook.com/apps/",
+    portalName: "Meta for Developers",
+    tokenTooltip: "A long-lived Instagram access token lets us post on your behalf. It expires after 60 days and must be refreshed.",
+    howToSteps: [
+      "Go to developers.facebook.com and sign in with the Facebook account linked to your Instagram Business profile.",
+      "Click \"My Apps\" → \"Create App\" (or select an existing app).",
+      "Add the \"Instagram Graph API\" product to your app.",
+      "In Graph API Explorer, select your app and request the instagram_basic and instagram_content_publish permissions.",
+      "Generate a short-lived User Token, then exchange it for a long-lived token (valid 60 days).",
+      "Paste the long-lived access token here.",
+    ],
+    expiryNote: "This token expires after 60 days. You'll need to reconnect when it expires.",
   },
   tiktok: {
     label: "TikTok",
@@ -81,6 +128,18 @@ const PLATFORM_CONFIG: Record<
     keyLabel: "Access Token",
     keyPlaceholder: "act.a1...",
     helpText: "From TikTok Developer Portal → Manage apps → Sandbox/Production token.",
+    portalUrl: "https://developers.tiktok.com/",
+    portalName: "TikTok for Developers",
+    tokenTooltip: "A TikTok access token allows automated video/content posting. Sandbox tokens work for testing; production tokens require app review.",
+    howToSteps: [
+      "Go to developers.tiktok.com and sign in with your TikTok account.",
+      "Click \"Manage apps\" → \"Create a new app\" (or select existing).",
+      "Request the \"Content Posting\" (video.publish) scope for your app.",
+      "For testing, use a Sandbox token (limited to sandbox users). For production, submit your app for review.",
+      "Once approved, go to your app settings and copy the Access Token.",
+      "Paste it here and test the connection.",
+    ],
+    expiryNote: "Sandbox tokens have limited functionality. Apply for production access for full features.",
   },
   linkedin: {
     label: "LinkedIn",
@@ -89,6 +148,18 @@ const PLATFORM_CONFIG: Record<
     keyLabel: "Access Token",
     keyPlaceholder: "AQV...",
     helpText: "Requires LinkedIn company page admin access. Generate from LinkedIn Developer Portal.",
+    portalUrl: "https://www.linkedin.com/developers/apps",
+    portalName: "LinkedIn Developer Portal",
+    tokenTooltip: "A LinkedIn access token allows posting to your company page. It typically expires after 60 days.",
+    howToSteps: [
+      "Go to linkedin.com/developers and sign in. You must be an admin of the LinkedIn company page.",
+      "Click \"Create app\" and associate it with your company page.",
+      "Under \"Products\", request access to \"Share on LinkedIn\" (w_member_social or w_organization_social).",
+      "Go to the \"Auth\" tab to find your Client ID and Client Secret.",
+      "Use the OAuth 2.0 authorization flow to generate an access token, or use LinkedIn's token generator tool.",
+      "Paste the access token here.",
+    ],
+    expiryNote: "This token expires after 60 days. You'll need to reconnect when it expires.",
   },
   email: {
     label: "Email (Resend)",
@@ -97,10 +168,72 @@ const PLATFORM_CONFIG: Record<
     keyLabel: "Resend API Key",
     keyPlaceholder: "re_...",
     helpText: "From resend.com → API Keys. We'll verify the key and check your domain status.",
+    portalUrl: "https://resend.com/api-keys",
+    portalName: "Resend Dashboard",
+    tokenTooltip: "A Resend API key lets us send emails on your behalf. Keys with \"Sending access\" permission are sufficient.",
+    howToSteps: [
+      "Go to resend.com and create an account (or sign in).",
+      "In the sidebar, click \"Domains\" → \"Add Domain\" and follow DNS verification steps.",
+      "Wait for domain verification to complete (usually a few minutes).",
+      "Go to \"API Keys\" in the sidebar → click \"Create API Key\".",
+      "Name the key (e.g., \"ForecastHer\"), select \"Sending access\" permission, and optionally restrict to your verified domain.",
+      "Copy the key (starts with re_) and paste it here. Then fill in your From email below.",
+    ],
+    expiryNote: null,
   },
 };
 
 const ALL_PLATFORMS: Platform[] = ["x", "instagram", "tiktok", "linkedin", "email"];
+
+// ── Inline How-To Guide ─────────────────────────────────────────────
+
+function PlatformHowTo({ platform }: { platform: Platform }) {
+  const [open, setOpen] = useState(false);
+  const cfg = PLATFORM_CONFIG[platform];
+
+  return (
+    <div className="mt-3">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-800 font-medium cursor-pointer"
+      >
+        <HelpCircle className="h-3.5 w-3.5" />
+        How to get this token
+        <ChevronDown
+          className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="mt-2 rounded-lg border border-purple-200 bg-purple-50/50 p-3 space-y-2">
+          <ol className="space-y-1.5 ml-0.5">
+            {cfg.howToSteps.map((step, i) => (
+              <li key={i} className="flex gap-2 text-xs">
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-purple-200 text-purple-700 text-[10px] font-bold mt-0.5">
+                  {i + 1}
+                </span>
+                <span className="text-muted-foreground leading-4">{step}</span>
+              </li>
+            ))}
+          </ol>
+          {cfg.expiryNote && (
+            <div className="flex items-start gap-1.5 mt-2 pt-2 border-t border-purple-200">
+              <Info className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700">{cfg.expiryNote}</p>
+            </div>
+          )}
+          <a
+            href={cfg.portalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium mt-1"
+          >
+            Open {cfg.portalName} <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Tokens Tab ──────────────────────────────────────────────────────
 
@@ -199,203 +332,307 @@ function TokensTab() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Summary */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Platform authentication tokens for automated posting.
-        </p>
-        <Badge
-          variant="outline"
-          className={`text-xs ${
-            connectedCount === 0
-              ? "border-red-200 bg-red-50 text-red-600"
-              : connectedCount < 3
-              ? "border-yellow-200 bg-yellow-50 text-yellow-700"
-              : "border-green-200 bg-green-50 text-green-700"
-          }`}
-        >
-          {connectedCount}/{ALL_PLATFORMS.length} connected
-        </Badge>
-      </div>
-
-      {/* Warning banner */}
-      {connectedCount === 0 && (
-        <div className="rounded-lg border-2 border-amber-300 bg-amber-50/50 p-4 flex items-start gap-3">
-          <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-semibold text-amber-800">No platforms connected</p>
-            <p className="text-xs text-amber-700 mt-1">
-              Connect at least one platform below to enable posting.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Token cards */}
+    <TooltipProvider>
       <div className="space-y-4">
-        {ALL_PLATFORMS.map((platform) => {
-          const cfg = PLATFORM_CONFIG[platform];
-          const token = getToken(platform);
-          const isConnected = token?.status === "active";
-          const isTesting = testingPlatform === platform;
+        {/* Summary */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm text-muted-foreground">
+              Platform authentication tokens for automated posting.
+            </p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="text-muted-foreground hover:text-foreground">
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                Each platform needs an API token to post on your behalf. Tokens are encrypted and stored securely. Click &quot;How to get this token&quot; on any card for step-by-step setup instructions.
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${
+                    connectedCount === 0
+                      ? "border-red-200 bg-red-50 text-red-600"
+                      : connectedCount < 3
+                      ? "border-yellow-200 bg-yellow-50 text-yellow-700"
+                      : "border-green-200 bg-green-50 text-green-700"
+                  }`}
+                >
+                  {connectedCount}/{ALL_PLATFORMS.length} connected
+                </Badge>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {connectedCount === 0
+                ? "No platforms connected yet. Connect at least one to start posting."
+                : connectedCount < ALL_PLATFORMS.length
+                ? `${ALL_PLATFORMS.length - connectedCount} platform(s) still need tokens.`
+                : "All platforms connected and ready to post!"}
+            </TooltipContent>
+          </Tooltip>
+        </div>
 
-          return (
-            <Card key={platform} className={!isConnected ? "border-dashed" : ""}>
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`h-12 w-12 rounded-xl flex items-center justify-center text-sm font-bold ${cfg.color}`}
-                    >
-                      {cfg.icon}
+        {/* Warning banner */}
+        {connectedCount === 0 && (
+          <div className="rounded-lg border-2 border-amber-300 bg-amber-50/50 p-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">No platforms connected</p>
+              <p className="text-xs text-amber-700 mt-1">
+                Connect at least one platform below to enable posting. Click &quot;How to get this token&quot; on any card for a step-by-step guide.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Token cards */}
+        <div className="space-y-4">
+          {ALL_PLATFORMS.map((platform) => {
+            const cfg = PLATFORM_CONFIG[platform];
+            const token = getToken(platform);
+            const isConnected = token?.status === "active";
+            const isTesting = testingPlatform === platform;
+
+            return (
+              <Card key={platform} className={!isConnected ? "border-dashed" : ""}>
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div
+                            className={`h-12 w-12 rounded-xl flex items-center justify-center text-sm font-bold ${cfg.color} cursor-help`}
+                          >
+                            {cfg.icon}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          {cfg.tokenTooltip}
+                        </TooltipContent>
+                      </Tooltip>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-semibold text-sm">{cfg.label}</p>
+                          <a
+                            href={cfg.portalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <ExternalLink className="h-3 w-3" />
+                              </TooltipTrigger>
+                              <TooltipContent>Open {cfg.portalName}</TooltipContent>
+                            </Tooltip>
+                          </a>
+                        </div>
+                        {isConnected ? (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                            Connected
+                            {token.from_email && (
+                              <span className="ml-1">
+                                &middot; {token.from_email}
+                              </span>
+                            )}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <XCircle className="h-3 w-3 text-gray-400" />
+                            Not connected
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-sm">{cfg.label}</p>
-                      {isConnected ? (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3 text-green-500" />
-                          Connected
-                          {token.from_email && (
-                            <span className="ml-1">
-                              &middot; {token.from_email}
-                            </span>
-                          )}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <XCircle className="h-3 w-3 text-gray-400" />
-                          Not connected
-                        </p>
-                      )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <Badge
+                              variant="outline"
+                              className={`text-xs ${
+                                isConnected
+                                  ? "bg-green-100 text-green-700 border-green-200"
+                                  : "bg-gray-100 text-gray-500 border-gray-200"
+                              }`}
+                            >
+                              {isConnected ? "Connected" : "Disconnected"}
+                            </Badge>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {isConnected
+                            ? "Token is active and ready for automated posting."
+                            : "No token stored. Click \"Connect\" to add one."}
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs gap-1"
+                            onClick={() => setConnectPlatform(platform)}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            {isConnected ? "Reauth" : "Connect"}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {isConnected
+                            ? "Replace the current token with a new one."
+                            : `Open the connection dialog to add your ${cfg.label} token.`}
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge
-                      variant="outline"
-                      className={`text-xs ${
-                        isConnected
-                          ? "bg-green-100 text-green-700 border-green-200"
-                          : "bg-gray-100 text-gray-500 border-gray-200"
-                      }`}
-                    >
-                      {isConnected ? "Connected" : "Disconnected"}
-                    </Badge>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs gap-1"
-                      onClick={() => setConnectPlatform(platform)}
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      {isConnected ? "Reauth" : "Connect"}
-                    </Button>
-                  </div>
-                </div>
 
-                {/* Detail grid for connected tokens */}
-                {isConnected && (
-                  <>
-                    <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">Connected</span>
-                        <p className="font-medium mt-0.5">
-                          {new Date(token.connected_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Key</span>
-                        <p className="font-medium mt-0.5 font-mono">
-                          {token.api_key.slice(0, 6)}...{token.api_key.slice(-4)}
-                        </p>
-                      </div>
-                      {token.from_name && (
+                  {/* Detail grid for connected tokens */}
+                  {isConnected && (
+                    <>
+                      <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
                         <div>
-                          <span className="text-muted-foreground">From name</span>
-                          <p className="font-medium mt-0.5">{token.from_name}</p>
+                          <span className="text-muted-foreground">Connected</span>
+                          <p className="font-medium mt-0.5">
+                            {new Date(token.connected_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-muted-foreground cursor-help flex items-center gap-1">
+                                Key <HelpCircle className="h-3 w-3" />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Only the first and last few characters are shown for security. The full key is stored encrypted.
+                            </TooltipContent>
+                          </Tooltip>
+                          <p className="font-medium mt-0.5 font-mono">
+                            {token.api_key.slice(0, 6)}...{token.api_key.slice(-4)}
+                          </p>
+                        </div>
+                        {token.from_name && (
+                          <div>
+                            <span className="text-muted-foreground">From name</span>
+                            <p className="font-medium mt-0.5">{token.from_name}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Expiry warning for platforms with expiry */}
+                      {cfg.expiryNote && (
+                        <div className="mt-3 flex items-start gap-1.5 rounded-md border border-amber-200 bg-amber-50/50 p-2">
+                          <Info className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                          <p className="text-xs text-amber-700">{cfg.expiryNote}</p>
                         </div>
                       )}
-                    </div>
 
-                    <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs gap-1"
-                          disabled={isTesting}
-                          onClick={() => handleTestPost(platform)}
+                      <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs gap-1"
+                                disabled={isTesting}
+                                onClick={() => handleTestPost(platform)}
+                              >
+                                {isTesting ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Send className="h-3 w-3" />
+                                )}
+                                {isTesting ? "Testing..." : "Test Connection"}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Sends a test request to verify your API key is valid and has the right permissions.
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-xs text-destructive hover:text-destructive gap-1"
+                              onClick={() => handleDisconnect(platform)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Disconnect
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Removes the stored token. You&apos;ll need to reconnect to post on {cfg.label} again.
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+
+                      {/* Inline test result */}
+                      {testResults[platform] && (
+                        <div
+                          className={`mt-3 rounded-lg border p-3 flex items-start gap-2 text-xs ${
+                            testResults[platform].ok
+                              ? "border-green-200 bg-green-50 text-green-800"
+                              : "border-red-200 bg-red-50 text-red-800"
+                          }`}
                         >
-                          {isTesting ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
+                          {testResults[platform].ok ? (
+                            <CheckCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                           ) : (
-                            <Send className="h-3 w-3" />
+                            <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
                           )}
-                          {isTesting ? "Testing..." : "Test Connection"}
-                        </Button>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs text-destructive hover:text-destructive gap-1"
-                        onClick={() => handleDisconnect(platform)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        Disconnect
-                      </Button>
+                          <span className="flex-1">{testResults[platform].message}</span>
+                          <button
+                            onClick={() => setTestResults((prev) => { const next = { ...prev }; delete next[platform]; return next; })}
+                            className="underline opacity-60 hover:opacity-100"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      )}
+
+                      {/* How-to guide (available even when connected, for re-auth) */}
+                      <PlatformHowTo platform={platform} />
+                    </>
+                  )}
+
+                  {/* Help text + how-to for disconnected */}
+                  {!isConnected && (
+                    <div className="mt-4 pt-3 border-t border-dashed border-border">
+                      <p className="text-xs text-muted-foreground">{cfg.helpText}</p>
+                      <PlatformHowTo platform={platform} />
                     </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
 
-                    {/* Inline test result */}
-                    {testResults[platform] && (
-                      <div
-                        className={`mt-3 rounded-lg border p-3 flex items-start gap-2 text-xs ${
-                          testResults[platform].ok
-                            ? "border-green-200 bg-green-50 text-green-800"
-                            : "border-red-200 bg-red-50 text-red-800"
-                        }`}
-                      >
-                        {testResults[platform].ok ? (
-                          <CheckCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                        ) : (
-                          <XCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                        )}
-                        <span className="flex-1">{testResults[platform].message}</span>
-                        <button
-                          onClick={() => setTestResults((prev) => { const next = { ...prev }; delete next[platform]; return next; })}
-                          className="underline opacity-60 hover:opacity-100"
-                        >
-                          Dismiss
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Help text for disconnected */}
-                {!isConnected && (
-                  <div className="mt-4 pt-3 border-t border-dashed border-border">
-                    <p className="text-xs text-muted-foreground">{cfg.helpText}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+        {/* Connect dialog */}
+        {connectPlatform && (
+          <ConnectDialog
+            platform={connectPlatform}
+            existingToken={getToken(connectPlatform)}
+            onClose={() => setConnectPlatform(null)}
+            onSaved={() => {
+              setConnectPlatform(null);
+              fetchTokens();
+            }}
+          />
+        )}
       </div>
-
-      {/* Connect dialog */}
-      {connectPlatform && (
-        <ConnectDialog
-          platform={connectPlatform}
-          existingToken={getToken(connectPlatform)}
-          onClose={() => setConnectPlatform(null)}
-          onSaved={() => {
-            setConnectPlatform(null);
-            fetchTokens();
-          }}
-        />
-      )}
-    </div>
+    </TooltipProvider>
   );
 }
 
@@ -495,105 +732,204 @@ function ConnectDialog({
     }
   }
 
+  const [showHowTo, setShowHowTo] = useState(false);
+
   return (
     <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <span
-              className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold ${cfg.color}`}
-            >
-              {cfg.icon}
-            </span>
-            Connect {cfg.label}
-          </DialogTitle>
-          <DialogDescription>{cfg.helpText}</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-lg">
+        <TooltipProvider>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span
+                className={`h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold ${cfg.color}`}
+              >
+                {cfg.icon}
+              </span>
+              Connect {cfg.label}
+            </DialogTitle>
+            <DialogDescription>{cfg.helpText}</DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-4 py-2">
+          {/* Inline how-to guide */}
           <div>
-            <Label className="text-sm font-medium">{cfg.keyLabel}</Label>
-            <Input
-              type="password"
-              placeholder={cfg.keyPlaceholder}
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="mt-1 font-mono text-sm"
-            />
+            <button
+              onClick={() => setShowHowTo(!showHowTo)}
+              className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-800 font-medium cursor-pointer"
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+              {showHowTo ? "Hide" : "Show"} step-by-step guide
+              <ChevronDown
+                className={`h-3 w-3 transition-transform ${showHowTo ? "rotate-180" : ""}`}
+              />
+            </button>
+            {showHowTo && (
+              <div className="mt-2 rounded-lg border border-purple-200 bg-purple-50/50 p-3 space-y-2">
+                <ol className="space-y-1.5 ml-0.5">
+                  {cfg.howToSteps.map((step, i) => (
+                    <li key={i} className="flex gap-2 text-xs">
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-purple-200 text-purple-700 text-[10px] font-bold mt-0.5">
+                        {i + 1}
+                      </span>
+                      <span className="text-muted-foreground leading-4">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+                {cfg.expiryNote && (
+                  <div className="flex items-start gap-1.5 mt-2 pt-2 border-t border-purple-200">
+                    <Info className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-700">{cfg.expiryNote}</p>
+                  </div>
+                )}
+                <a
+                  href={cfg.portalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-800 font-medium mt-1"
+                >
+                  Open {cfg.portalName} <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            )}
           </div>
 
-          {isEmail && (
-            <>
-              <div>
-                <Label className="text-sm font-medium">From email</Label>
-                <Input
-                  type="email"
-                  placeholder="hello@forcasther.com"
-                  value={fromEmail}
-                  onChange={(e) => setFromEmail(e.target.value)}
-                  className="mt-1"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Must match a verified domain in your Resend account.
-                </p>
+          <div className="space-y-4 py-2">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-sm font-medium">{cfg.keyLabel}</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="text-muted-foreground hover:text-foreground">
+                      <HelpCircle className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    {cfg.tokenTooltip}
+                  </TooltipContent>
+                </Tooltip>
               </div>
-              <div>
-                <Label className="text-sm font-medium">
-                  From name <span className="text-muted-foreground font-normal">(optional)</span>
-                </Label>
-                <Input
-                  placeholder="ForecastHer"
-                  value={fromName}
-                  onChange={(e) => setFromName(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </>
-          )}
-
-          {/* Test result */}
-          {testResult && (
-            <div
-              className={`rounded-lg border p-3 text-xs ${
-                testResult.ok
-                  ? "border-green-200 bg-green-50 text-green-800"
-                  : "border-red-200 bg-red-50 text-red-800"
-              }`}
-            >
-              {testResult.ok ? (
-                <CheckCircle className="h-3.5 w-3.5 inline mr-1.5" />
-              ) : (
-                <XCircle className="h-3.5 w-3.5 inline mr-1.5" />
-              )}
-              {testResult.message}
+              <Input
+                type="password"
+                placeholder={cfg.keyPlaceholder}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                className="mt-1 font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Paste the token from your {cfg.portalName}. It starts with &quot;{cfg.keyPlaceholder.replace("...", "")}&quot;.
+              </p>
             </div>
-          )}
 
-          {error && (
-            <p className="text-sm text-red-500">{error}</p>
-          )}
-        </div>
+            {isEmail && (
+              <>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <Label className="text-sm font-medium">From email</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-muted-foreground hover:text-foreground">
+                          <HelpCircle className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        The email address that recipients will see in the &quot;From&quot; field. Must use a domain you&apos;ve verified in Resend.
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <Input
+                    type="email"
+                    placeholder="hello@forcasther.com"
+                    value={fromEmail}
+                    onChange={(e) => setFromEmail(e.target.value)}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Must match a verified domain in your Resend account. Go to Resend &rarr; Domains to verify.
+                  </p>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <Label className="text-sm font-medium">
+                      From name <span className="text-muted-foreground font-normal">(optional)</span>
+                    </Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-muted-foreground hover:text-foreground">
+                          <HelpCircle className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        The display name shown alongside the from email, e.g. &quot;ForecastHer &lt;hello@forcasther.com&gt;&quot;.
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <Input
+                    placeholder="ForecastHer"
+                    value={fromName}
+                    onChange={(e) => setFromName(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </>
+            )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleTest} disabled={!apiKey || testing}>
-            {testing ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Verifying...
-              </>
-            ) : (
-              "Test Connection"
+            {/* Test result */}
+            {testResult && (
+              <div
+                className={`rounded-lg border p-3 text-xs ${
+                  testResult.ok
+                    ? "border-green-200 bg-green-50 text-green-800"
+                    : "border-red-200 bg-red-50 text-red-800"
+                }`}
+              >
+                {testResult.ok ? (
+                  <CheckCircle className="h-3.5 w-3.5 inline mr-1.5" />
+                ) : (
+                  <XCircle className="h-3.5 w-3.5 inline mr-1.5" />
+                )}
+                {testResult.message}
+              </div>
             )}
-          </Button>
-          <Button onClick={handleSave} disabled={!apiKey || saving}>
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Saving...
-              </>
-            ) : (
-              "Save & Connect"
+
+            {error && (
+              <p className="text-sm text-red-500">{error}</p>
             )}
-          </Button>
-        </DialogFooter>
+          </div>
+
+          <DialogFooter>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" onClick={handleTest} disabled={!apiKey || testing}>
+                  {testing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Verifying...
+                    </>
+                  ) : (
+                    "Test Connection"
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Validates your token by making a test API call. Recommended before saving.
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={handleSave} disabled={!apiKey || saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    "Save & Connect"
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Stores the token securely and activates this platform for posting.
+              </TooltipContent>
+            </Tooltip>
+          </DialogFooter>
+        </TooltipProvider>
       </DialogContent>
     </Dialog>
   );
@@ -626,13 +962,31 @@ function UsersTab() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Manage admin users and their roles.</p>
-        <Button size="sm" className="gradient-purple text-white" onClick={() => setShowInvite(true)}>
-          <UserPlus className="h-4 w-4 mr-1" /> Invite User
-        </Button>
-      </div>
+    <TooltipProvider>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm text-muted-foreground">Manage admin users and their roles.</p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="text-muted-foreground hover:text-foreground">
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                Invite team members with different permission levels. Editors can create content, Reviewers can approve it, and Analysts have read-only access to analytics.
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="sm" className="gradient-purple text-white" onClick={() => setShowInvite(true)}>
+                <UserPlus className="h-4 w-4 mr-1" /> Invite User
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Send an email invitation to a new team member.</TooltipContent>
+          </Tooltip>
+        </div>
 
       {inviteSuccess && (
         <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800 flex items-center gap-2">
@@ -644,54 +998,71 @@ function UsersTab() {
       {showInvite && (
         <Dialog open onOpenChange={() => setShowInvite(false)}>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5" /> Invite User
-              </DialogTitle>
-              <DialogDescription>
-                Send an invitation to a team member. They will receive an email with a link to join.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div>
-                <Label className="text-sm font-medium">Email Address</Label>
-                <Input
-                  type="email"
-                  placeholder="colleague@example.com"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="mt-1"
-                />
+            <TooltipProvider>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" /> Invite User
+                </DialogTitle>
+                <DialogDescription>
+                  Send an invitation to a team member. They will receive an email with a link to join.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div>
+                  <Label className="text-sm font-medium">Email Address</Label>
+                  <Input
+                    type="email"
+                    placeholder="colleague@example.com"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The user will receive an email with a link to create their account.
+                  </p>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <Label className="text-sm font-medium">Role</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-muted-foreground hover:text-foreground">
+                          <HelpCircle className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        Roles control what the user can do. See the &quot;Role Permissions&quot; table below for a full breakdown.
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <Select value={inviteRole} onValueChange={setInviteRole}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="editor">Editor</SelectItem>
+                      <SelectItem value="reviewer">Reviewer</SelectItem>
+                      <SelectItem value="analyst">Analyst</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {inviteRole === "editor" && "Can create/edit markets, drafts, assets, and schedule posts."}
+                    {inviteRole === "reviewer" && "Can approve & lock content. Read-only for everything else."}
+                    {inviteRole === "analyst" && "View-only access to analytics and reports."}
+                  </p>
+                </div>
               </div>
-              <div>
-                <Label className="text-sm font-medium">Role</Label>
-                <Select value={inviteRole} onValueChange={setInviteRole}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="editor">Editor</SelectItem>
-                    <SelectItem value="reviewer">Reviewer</SelectItem>
-                    <SelectItem value="analyst">Analyst</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {inviteRole === "editor" && "Can create/edit markets, drafts, assets, and schedule posts."}
-                  {inviteRole === "reviewer" && "Can approve & lock content. Read-only for everything else."}
-                  {inviteRole === "analyst" && "View-only access to analytics and reports."}
-                </p>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowInvite(false)}>Cancel</Button>
-              <Button onClick={handleSendInvite} disabled={!inviteEmail.trim() || inviting}>
-                {inviting ? (
-                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Sending...</>
-                ) : (
-                  <><Send className="h-4 w-4 mr-1" /> Send Invite</>
-                )}
-              </Button>
-            </DialogFooter>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowInvite(false)}>Cancel</Button>
+                <Button onClick={handleSendInvite} disabled={!inviteEmail.trim() || inviting}>
+                  {inviting ? (
+                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Sending...</>
+                  ) : (
+                    <><Send className="h-4 w-4 mr-1" /> Send Invite</>
+                  )}
+                </Button>
+              </DialogFooter>
+            </TooltipProvider>
           </DialogContent>
         </Dialog>
       )}
@@ -742,17 +1113,49 @@ function UsersTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium">Role Permissions</CardTitle>
+          <div className="flex items-center gap-1.5">
+            <CardTitle className="text-sm font-medium">Role Permissions</CardTitle>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="text-muted-foreground hover:text-foreground">
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-xs">
+                This table shows what each role can do. Assign the minimum role needed for each team member.
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Permission</TableHead>
-                <TableHead className="text-center">Owner</TableHead>
-                <TableHead className="text-center">Editor</TableHead>
-                <TableHead className="text-center">Reviewer</TableHead>
-                <TableHead className="text-center">Analyst</TableHead>
+                <TableHead className="text-center">
+                  <Tooltip>
+                    <TooltipTrigger asChild><span className="cursor-help">Owner</span></TooltipTrigger>
+                    <TooltipContent>Full access to everything, including tokens and kill switch.</TooltipContent>
+                  </Tooltip>
+                </TableHead>
+                <TableHead className="text-center">
+                  <Tooltip>
+                    <TooltipTrigger asChild><span className="cursor-help">Editor</span></TooltipTrigger>
+                    <TooltipContent>Can create and edit markets, drafts, and schedule posts.</TooltipContent>
+                  </Tooltip>
+                </TableHead>
+                <TableHead className="text-center">
+                  <Tooltip>
+                    <TooltipTrigger asChild><span className="cursor-help">Reviewer</span></TooltipTrigger>
+                    <TooltipContent>Can approve and lock content. Read-only for everything else.</TooltipContent>
+                  </Tooltip>
+                </TableHead>
+                <TableHead className="text-center">
+                  <Tooltip>
+                    <TooltipTrigger asChild><span className="cursor-help">Analyst</span></TooltipTrigger>
+                    <TooltipContent>View-only access to analytics and reports.</TooltipContent>
+                  </Tooltip>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -783,7 +1186,8 @@ function UsersTab() {
           </Table>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
 
@@ -791,18 +1195,32 @@ function UsersTab() {
 
 function AuditLogTab() {
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Every approval, post, workflow run, and token change is logged here.
-      </p>
-      <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">
-          <ScrollText className="h-8 w-8 mx-auto mb-3 opacity-50" />
-          <p className="text-sm">No audit events yet.</p>
-          <p className="text-xs mt-1">Events will appear as you use the admin tool.</p>
-        </CardContent>
-      </Card>
-    </div>
+    <TooltipProvider>
+      <div className="space-y-4">
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm text-muted-foreground">
+            Every approval, post, workflow run, and token change is logged here.
+          </p>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="text-muted-foreground hover:text-foreground">
+                <HelpCircle className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="max-w-xs">
+              The audit log tracks all actions for accountability: who approved content, when posts were published, token changes, and workflow executions.
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            <ScrollText className="h-8 w-8 mx-auto mb-3 opacity-50" />
+            <p className="text-sm">No audit events yet.</p>
+            <p className="text-xs mt-1">Events will appear as you use the admin tool — approvals, posts, workflow runs, and token changes are all recorded automatically.</p>
+          </CardContent>
+        </Card>
+      </div>
+    </TooltipProvider>
   );
 }
 
@@ -842,60 +1260,107 @@ function KillSwitchTab() {
   }
 
   return (
-    <div className="space-y-6 max-w-lg">
-      {revoked && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4" />
-          All tokens have been revoked. Reconnect platforms to resume posting.
-        </div>
-      )}
-
-      <div className="rounded-lg border-2 border-destructive/30 bg-destructive/5 p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <AlertTriangle className="h-5 w-5 text-destructive" />
-          <h3 className="font-medium text-sm">Emergency Controls</h3>
-        </div>
-        <p className="text-xs text-muted-foreground mb-4">
-          These controls immediately affect automated posting. Use with caution.
-        </p>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="font-medium">Global Autopost</Label>
-              <p className="text-xs text-muted-foreground">Disable all automated posting globally.</p>
-            </div>
-            <Switch checked={globalAutopost} onCheckedChange={setGlobalAutopost} />
+    <TooltipProvider>
+      <div className="space-y-6 max-w-lg">
+        {revoked && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            All tokens have been revoked. Reconnect platforms in the Tokens tab to resume posting.
           </div>
+        )}
 
-          <Separator />
+        <div className="rounded-lg border-2 border-destructive/30 bg-destructive/5 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <h3 className="font-medium text-sm">Emergency Controls</h3>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="text-muted-foreground hover:text-foreground">
+                  <HelpCircle className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-xs">
+                Use these controls to immediately halt automated posting in case of an incident, compromised token, or content issue. Changes take effect instantly.
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            These controls immediately affect automated posting. Use with caution.
+          </p>
 
-          <div className="space-y-3">
-            <Label className="font-medium">Platform Controls</Label>
-            {(Object.keys(platformStates) as Platform[]).map((p) => (
-              <div key={p} className="flex items-center justify-between">
-                <span className="text-sm capitalize">{p === "x" ? "X (Twitter)" : p}</span>
-                <Switch
-                  checked={platformStates[p]}
-                  onCheckedChange={() => togglePlatform(p)}
-                  disabled={!globalAutopost}
-                />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div>
+                  <Label className="font-medium">Global Autopost</Label>
+                  <p className="text-xs text-muted-foreground">Disable all automated posting globally.</p>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="text-muted-foreground hover:text-foreground">
+                      <HelpCircle className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    When enabled, the system can auto-post to connected platforms. Toggle off to pause all automated posting without disconnecting tokens.
+                  </TooltipContent>
+                </Tooltip>
               </div>
-            ))}
+              <Switch checked={globalAutopost} onCheckedChange={setGlobalAutopost} />
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-1.5">
+                <Label className="font-medium">Platform Controls</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="text-muted-foreground hover:text-foreground">
+                      <HelpCircle className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="max-w-xs">
+                    Pause posting on individual platforms. Requires Global Autopost to be enabled first. Useful for pausing one channel while keeping others active.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              {(Object.keys(platformStates) as Platform[]).map((p) => (
+                <div key={p} className="flex items-center justify-between">
+                  <span className="text-sm capitalize">{p === "x" ? "X (Twitter)" : p}</span>
+                  <Switch
+                    checked={platformStates[p]}
+                    onCheckedChange={() => togglePlatform(p)}
+                    disabled={!globalAutopost}
+                  />
+                </div>
+              ))}
+              {!globalAutopost && (
+                <p className="text-xs text-muted-foreground italic">
+                  Enable Global Autopost above to control individual platforms.
+                </p>
+              )}
+            </div>
+
+            <Separator />
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setShowRevokeConfirm(true)}
+                >
+                  <Power className="h-4 w-4 mr-1" /> Revoke All Tokens
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-xs">
+                Permanently deletes all stored API tokens. All platforms will be disconnected and scheduled posts will fail. You will need to reconnect each platform manually.
+              </TooltipContent>
+            </Tooltip>
           </div>
-
-          <Separator />
-
-          <Button
-            variant="destructive"
-            size="sm"
-            className="w-full"
-            onClick={() => setShowRevokeConfirm(true)}
-          >
-            <Power className="h-4 w-4 mr-1" /> Revoke All Tokens
-          </Button>
         </div>
-      </div>
 
       {showRevokeConfirm && (
         <Dialog open onOpenChange={() => setShowRevokeConfirm(false)}>
@@ -924,7 +1389,8 @@ function KillSwitchTab() {
           </DialogContent>
         </Dialog>
       )}
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
 
@@ -950,12 +1416,34 @@ export default function AdminSettingsPage() {
       />
 
       <Tabs defaultValue="tokens">
-        <TabsList>
-          <TabsTrigger value="tokens">Tokens</TabsTrigger>
-          <TabsTrigger value="users">Users & Roles</TabsTrigger>
-          <TabsTrigger value="audit">Audit Log</TabsTrigger>
-          <TabsTrigger value="killswitch">Kill Switch</TabsTrigger>
-        </TabsList>
+        <TooltipProvider>
+          <TabsList>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <TabsTrigger value="tokens">Tokens</TabsTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Connect and manage API keys for each platform.</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <TabsTrigger value="users">Users & Roles</TabsTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Invite team members and manage permissions.</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <TabsTrigger value="audit">Audit Log</TabsTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Track all actions for accountability.</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <TabsTrigger value="killswitch">Kill Switch</TabsTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Emergency controls to halt automated posting.</TooltipContent>
+            </Tooltip>
+          </TabsList>
+        </TooltipProvider>
         <TabsContent value="tokens" className="mt-4"><TokensTab /></TabsContent>
         <TabsContent value="users" className="mt-4"><UsersTab /></TabsContent>
         <TabsContent value="audit" className="mt-4"><AuditLogTab /></TabsContent>
