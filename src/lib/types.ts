@@ -241,6 +241,35 @@ export interface AdminUser {
   created_at: string;
 }
 
+export interface AdminRecord {
+  id: string;
+  role: AdminRole;
+  is_active: boolean;
+  mfa_enabled: boolean;
+  mfa_enrolled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminAuditLog {
+  id: string;
+  admin_id: string;
+  action: string;
+  detail: Record<string, unknown>;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}
+
+export type MfaAuditAction =
+  | "mfa_enroll"
+  | "mfa_challenge_success"
+  | "mfa_challenge_failure"
+  | "mfa_recovery_code_used"
+  | "mfa_reset_by_owner"
+  | "admin_login"
+  | "admin_login_failure";
+
 export interface Alert {
   id: string;
   type: "source_fetch_failed" | "publisher_auth_expired" | "low_confidence_draft" | "compliance_block";

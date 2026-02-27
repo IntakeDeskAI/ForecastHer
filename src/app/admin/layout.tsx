@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -25,6 +26,8 @@ import {
   Activity,
   Sparkles,
   Rocket,
+  LogOut,
+  ShieldCheck,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -40,19 +43,38 @@ const NAV_ITEMS = [
   { href: "/admin/settings", label: "Admin", icon: Settings },
 ];
 
+const BARE_ROUTES = ["/admin/login", "/admin/mfa"];
+
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [autopostEnabled, setAutopostEnabled] = useState(false);
 
+  // Bare layout for login and MFA pages
+  const isBare = BARE_ROUTES.some(
+    (r) => pathname === r || pathname.startsWith(r + "/")
+  );
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.push("/admin/login");
+    router.refresh();
+  }
+
   function isActive(href: string) {
     if (href === "/admin") return pathname === "/admin";
     return pathname.startsWith(href);
+  }
+
+  if (isBare) {
+    return <>{children}</>;
   }
 
   return (
@@ -164,8 +186,21 @@ export default function AdminLayout({
           </div>
 
           <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs border-green-200 bg-green-50 text-green-700">
+              <ShieldCheck className="h-3 w-3 mr-1" />
+              2FA
+            </Badge>
             <Button variant="ghost" size="icon" className="h-8 w-8 relative">
               <Bell className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleLogout}
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
             </Button>
           </div>
         </header>

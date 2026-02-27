@@ -49,8 +49,11 @@ import {
   ChevronDown,
   Info,
   ShieldAlert,
+  ShieldCheck,
   Copy,
+  RotateCcw,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { HowItWorks } from "@/components/how-it-works";
 
 // ── Types ───────────────────────────────────────────────────────────
@@ -1417,6 +1420,273 @@ function KillSwitchTab() {
   );
 }
 
+// ── Security / MFA Tab ──────────────────────────────────────────────
+
+interface AdminMfaInfo {
+  id: string;
+  role: string;
+  mfa_enabled: boolean;
+  mfa_enrolled_at: string | null;
+  is_active: boolean;
+  profiles?: { username: string; avatar_url: string | null } | null;
+}
+
+function SecurityTab() {
+  const supabase = createClient();
+  const [admins, setAdmins] = useState<AdminMfaInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [resetTarget, setResetTarget] = useState<AdminMfaInfo | null>(null);
+  const [confirmCode, setConfirmCode] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState("");
+  const [resetSuccess, setResetSuccess] = useState("");
+
+  const fetchAdmins = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch("/api/admin/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "check_admin" }),
+    });
+    const data = await res.json();
+
+    // For now, show placeholder admin list since we'd need a list endpoint
+    // The current user's info is what we get from check_admin
+    if (data.is_admin) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setAdmins([{
+          id: user.id,
+          role: data.role,
+          mfa_enabled: data.mfa_enabled,
+          mfa_enrolled_at: null,
+          is_active: true,
+          profiles: { username: user.email || "admin", avatar_url: null },
+        }]);
+      }
+    }
+    setLoading(false);
+  }, [supabase]);
+
+  useEffect(() => {
+    fetchAdmins();
+  }, [fetchAdmins]);
+
+  async function handleMfaReset() {
+    if (!resetTarget) return;
+    setResetting(true);
+    setResetError("");
+    setResetSuccess("");
+
+    // Owner must verify their own 2FA first
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const verifiedFactor = factors?.totp?.find((f) => f.status === "verified");
+
+    if (!verifiedFactor) {
+      setResetError("You must have 2FA enabled to reset another admin's MFA.");
+      setResetting(false);
+      return;
+    }
+
+    const { data: challengeData, error: challengeError } =
+      await supabase.auth.mfa.challenge({ factorId: verifiedFactor.id });
+
+    if (challengeError || !challengeData) {
+      setResetError("Failed to create challenge.");
+      setResetting(false);
+      return;
+    }
+
+    const { error: verifyError } = await supabase.auth.mfa.verify({
+      factorId: verifiedFactor.id,
+      challengeId: challengeData.id,
+      code: confirmCode,
+    });
+
+    if (verifyError) {
+      setResetError("Invalid code. Please re-enter your 2FA code.");
+      setConfirmCode("");
+      setResetting(false);
+      return;
+    }
+
+    // Now call the reset API
+    const res = await fetch("/api/admin/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "mfa_reset",
+        target_admin_id: resetTarget.id,
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      setResetError(data.error || "Failed to reset MFA.");
+      setResetting(false);
+      return;
+    }
+
+    setResetSuccess(
+      `MFA reset for ${resetTarget.profiles?.username || "admin"}. They will be required to re-enroll on next login.`
+    );
+    setResetTarget(null);
+    setConfirmCode("");
+    setResetting(false);
+    fetchAdmins();
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5" />
+            Two-Factor Authentication
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            2FA is mandatory for all admin accounts. No admin can access
+            protected routes without completing MFA verification.
+          </p>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Admin</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>2FA Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {admins.map((admin) => (
+                  <TableRow key={admin.id}>
+                    <TableCell className="font-medium">
+                      {admin.profiles?.username || admin.id.slice(0, 8)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize">
+                        {admin.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {admin.mfa_enabled ? (
+                        <Badge className="bg-green-100 text-green-700 border-green-200">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Enrolled
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          Not enrolled
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {admin.mfa_enabled && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setResetTarget(admin)}
+                        >
+                          <RotateCcw className="h-3 w-3 mr-1" />
+                          Reset 2FA
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+
+          {resetSuccess && (
+            <p className="mt-4 text-sm text-green-600 text-center">
+              {resetSuccess}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* MFA Reset Confirmation Dialog */}
+      {resetTarget && (
+        <Dialog open onOpenChange={() => { setResetTarget(null); setResetError(""); setConfirmCode(""); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ShieldAlert className="h-5 w-5 text-amber-500" />
+                Confirm MFA Reset
+              </DialogTitle>
+              <DialogDescription>
+                You are resetting 2FA for{" "}
+                <strong>{resetTarget.profiles?.username || "this admin"}</strong>.
+                They will be forced to re-enroll on their next login. Enter your
+                own 2FA code to confirm.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label htmlFor="confirm-code">Your 2FA code</Label>
+                <Input
+                  id="confirm-code"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={confirmCode}
+                  onChange={(e) =>
+                    setConfirmCode(
+                      e.target.value.replace(/\D/g, "").slice(0, 6)
+                    )
+                  }
+                  autoComplete="one-time-code"
+                  className="text-center text-lg tracking-[0.3em] font-mono"
+                />
+              </div>
+              {resetError && (
+                <p className="text-sm text-red-500">{resetError}</p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setResetTarget(null);
+                  setResetError("");
+                  setConfirmCode("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={resetting || confirmCode.length !== 6}
+                onClick={handleMfaReset}
+              >
+                {resetting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Resetting...
+                  </>
+                ) : (
+                  "Reset 2FA"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
 // ── Main Admin Settings Page ─────────────────────────────────────────
 
 export default function AdminSettingsPage() {
@@ -1465,12 +1735,19 @@ export default function AdminSettingsPage() {
               </TooltipTrigger>
               <TooltipContent>Emergency controls to halt automated posting.</TooltipContent>
             </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <TabsTrigger value="security">Security</TabsTrigger>
+              </TooltipTrigger>
+              <TooltipContent>2FA management and admin MFA resets.</TooltipContent>
+            </Tooltip>
           </TabsList>
         </TooltipProvider>
         <TabsContent value="tokens" className="mt-4"><TokensTab /></TabsContent>
         <TabsContent value="users" className="mt-4"><UsersTab /></TabsContent>
         <TabsContent value="audit" className="mt-4"><AuditLogTab /></TabsContent>
         <TabsContent value="killswitch" className="mt-4"><KillSwitchTab /></TabsContent>
+        <TabsContent value="security" className="mt-4"><SecurityTab /></TabsContent>
       </Tabs>
     </div>
   );
