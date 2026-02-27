@@ -63,6 +63,8 @@ import {
   TrendingUp,
   ArrowUpDown,
   ShieldAlert,
+  Loader2,
+  FlaskConical,
 } from "lucide-react";
 import { HowItWorks } from "@/components/how-it-works";
 
@@ -517,6 +519,38 @@ const SAMPLE_RUNS: AIRunLog[] = [
   },
 ];
 
+// ── Shared helper: create a new run log entry ─────────────────────────
+
+let _runCounter = 100;
+function createRunLog(
+  runType: AIRunLog["run_type"],
+  status: AIRunLog["status"],
+  overrides?: Partial<AIRunLog>,
+): AIRunLog {
+  _runCounter++;
+  const now = new Date().toISOString();
+  return {
+    id: `run-${_runCounter}`,
+    run_type: runType,
+    status,
+    started_at: now,
+    completed_at: status === "completed" ? now : null,
+    input_payload: {},
+    prompt_version: "v1",
+    model_used: "claude-sonnet-4-6",
+    sources_used: [],
+    output: status === "completed" ? { result: "ok" } : null,
+    compliance_results: [],
+    human_edits: null,
+    final_posted_version: null,
+    outcome_metrics: null,
+    duration_ms: status === "completed" ? 2400 : null,
+    tokens_used: status === "completed" ? 1820 : null,
+    error: status === "failed" ? "An error occurred" : null,
+    ...overrides,
+  };
+}
+
 // ── Tab: Generate ─────────────────────────────────────────────────────
 
 // Threshold enforcement: compute rejection reasons for a candidate
@@ -556,7 +590,7 @@ function getGuardrailViolations(candidate: MarketCandidate, config: GenerateConf
   return violations;
 }
 
-function GenerateTab() {
+function GenerateTab({ runs, setRuns }: { runs: AIRunLog[]; setRuns: React.Dispatch<React.SetStateAction<AIRunLog[]>> }) {
   const [config, setConfig] = useState<GenerateConfig>({
     mode: "pre_launch",
     outputs: ["markets"],
@@ -573,6 +607,55 @@ function GenerateTab() {
   const [generating, setGenerating] = useState(false);
   const [expandedCandidate, setExpandedCandidate] = useState<string | null>(null);
   const [showRejected, setShowRejected] = useState(true);
+
+  // Individual step loading states
+  const [runningStep, setRunningStep] = useState<string | null>(null);
+  // Full pipeline loading
+  const [runningPipeline, setRunningPipeline] = useState(false);
+  const [pipelineProgress, setPipelineProgress] = useState(0);
+
+  // Run a single step with loading + log entry
+  async function runStep(stepType: AIRunLog["run_type"], label: string) {
+    setRunningStep(stepType);
+    await new Promise((r) => setTimeout(r, 1500));
+    const newRun = createRunLog(stepType, "completed", {
+      input_payload: { categories: config.categories_allowed, risk_ceiling: config.risk_ceiling },
+      prompt_version: `${label}_v1`,
+      duration_ms: 1200 + Math.floor(Math.random() * 3000),
+      tokens_used: 800 + Math.floor(Math.random() * 4000),
+    });
+    setRuns((prev) => [newRun, ...prev]);
+    setRunningStep(null);
+  }
+
+  // Run full pipeline
+  async function runFullPipeline() {
+    setRunningPipeline(true);
+    setPipelineProgress(0);
+    const steps: { type: AIRunLog["run_type"]; label: string }[] = [
+      { type: "trend_scan", label: "Trend Scan" },
+      { type: "generate_markets", label: "Propose Markets" },
+      { type: "generate_drafts", label: "Generate Drafts" },
+      { type: "compliance_check", label: "Compliance Check" },
+    ];
+    for (let i = 0; i < steps.length; i++) {
+      setPipelineProgress(Math.round(((i) / steps.length) * 100));
+      setRunningStep(steps[i].type);
+      await new Promise((r) => setTimeout(r, 1200));
+      const newRun = createRunLog(steps[i].type, "completed", {
+        input_payload: { pipeline: true, step: i + 1, categories: config.categories_allowed },
+        prompt_version: `${steps[i].label.toLowerCase().replace(/ /g, "_")}_v1`,
+        duration_ms: 1000 + Math.floor(Math.random() * 2000),
+        tokens_used: 500 + Math.floor(Math.random() * 3000),
+      });
+      setRuns((prev) => [newRun, ...prev]);
+    }
+    setPipelineProgress(100);
+    setRunningStep(null);
+    await new Promise((r) => setTimeout(r, 400));
+    setRunningPipeline(false);
+    setPipelineProgress(0);
+  }
 
   // Split candidates into passing and rejected
   const passingCandidates = candidates.filter((c) => getGuardrailViolations(c, config).length === 0);
@@ -748,19 +831,90 @@ function GenerateTab() {
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
+      {/* Pipeline + Step Buttons */}
+      {runningPipeline && (
+        <Card className="border-purple-200 bg-purple-50/30 dark:bg-purple-950/10">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
+              <span className="text-sm font-medium">Running Full Pipeline...</span>
+              <Badge variant="outline" className="text-xs">{pipelineProgress}%</Badge>
+            </div>
+            <Progress value={pipelineProgress} className="h-2" />
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex flex-wrap gap-3">
-        <Button className="gap-2" onClick={() => setGenerating(true)}>
-          <Sparkles className="h-4 w-4" /> Generate Markets
+        <Button
+          className="gap-2"
+          disabled={runningPipeline || runningStep !== null}
+          onClick={runFullPipeline}
+        >
+          {runningPipeline ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
+          {runningPipeline ? "Running Pipeline..." : "Run Full Pipeline"}
         </Button>
-        <Button variant="outline" className="gap-2" disabled={candidates.filter((c) => c.status === "accepted").length === 0}>
-          <FileText className="h-4 w-4" /> Generate Drafts from Selected
+
+        <Separator orientation="vertical" className="h-8 hidden sm:block" />
+
+        <Button
+          variant="outline"
+          className="gap-2"
+          disabled={runningPipeline || runningStep !== null}
+          onClick={() => runStep("trend_scan", "Trend Scan")}
+        >
+          {runningStep === "trend_scan" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
+          {runningStep === "trend_scan" ? "Scanning..." : "Run Trend Scan"}
         </Button>
-        <Button variant="outline" className="gap-2" disabled>
-          <Zap className="h-4 w-4" /> Generate Assets
+
+        <Button
+          variant="outline"
+          className="gap-2"
+          disabled={runningPipeline || runningStep !== null}
+          onClick={() => runStep("generate_markets", "Propose Markets")}
+        >
+          {runningStep === "generate_markets" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <TrendingUp className="h-4 w-4" />
+          )}
+          {runningStep === "generate_markets" ? "Proposing..." : "Propose Markets"}
         </Button>
-        <Button variant="outline" className="gap-2" disabled>
-          <Clock className="h-4 w-4" /> Create Schedule Plan
+
+        <Button
+          variant="outline"
+          className="gap-2"
+          disabled={runningPipeline || runningStep !== null || candidates.filter((c) => c.status === "accepted").length === 0}
+          onClick={() => runStep("generate_drafts", "Generate Drafts")}
+        >
+          {runningStep === "generate_drafts" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <FileText className="h-4 w-4" />
+          )}
+          {runningStep === "generate_drafts" ? "Generating..." : "Generate Drafts"}
+        </Button>
+
+        <Button
+          variant="outline"
+          className="gap-2"
+          disabled={runningPipeline || runningStep !== null}
+          onClick={() => runStep("compliance_check", "Compliance Check")}
+        >
+          {runningStep === "compliance_check" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Shield className="h-4 w-4" />
+          )}
+          {runningStep === "compliance_check" ? "Checking..." : "Compliance Check"}
         </Button>
       </div>
 
@@ -876,10 +1030,30 @@ function GenerateTab() {
                             </div>
                           </div>
                           <div className="flex gap-2 pt-2">
-                            <Button size="sm" className="text-xs gap-1">
-                              <Plus className="h-3 w-3" /> Create Market
+                            <Button
+                              size="sm"
+                              className="text-xs gap-1"
+                              disabled={candidate.status === "created"}
+                              onClick={() => {
+                                setCandidates(candidates.map((c) =>
+                                  c.id === candidate.id ? { ...c, status: "created" as const } : c
+                                ));
+                              }}
+                            >
+                              {candidate.status === "created" ? (
+                                <><CheckCircle className="h-3 w-3" /> Created</>
+                              ) : (
+                                <><Plus className="h-3 w-3" /> Create Market</>
+                              )}
                             </Button>
-                            <Button size="sm" variant="outline" className="text-xs gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs gap-1"
+                              onClick={() => {
+                                navigator.clipboard.writeText(JSON.stringify(candidate, null, 2));
+                              }}
+                            >
                               <Copy className="h-3 w-3" /> Copy Packet
                             </Button>
                           </div>
@@ -1008,9 +1182,50 @@ function GenerateTab() {
 // ── Tab: Prompt Library ───────────────────────────────────────────────
 
 function PromptLibraryTab() {
-  const [prompts] = useState<PromptTemplate[]>(SAMPLE_PROMPTS);
+  const [prompts, setPrompts] = useState<PromptTemplate[]>(SAMPLE_PROMPTS);
   const [selectedPrompt, setSelectedPrompt] = useState<PromptTemplate | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
+  const [testingPrompt, setTestingPrompt] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<string | null>(null);
+
+  function toggleLock(promptId: string) {
+    setPrompts((prev) =>
+      prev.map((p) =>
+        p.id === promptId ? { ...p, is_locked: !p.is_locked } : p
+      )
+    );
+    setSelectedPrompt((prev) =>
+      prev && prev.id === promptId ? { ...prev, is_locked: !prev.is_locked } : prev
+    );
+  }
+
+  function clonePrompt(prompt: PromptTemplate) {
+    const newPrompt: PromptTemplate = {
+      ...prompt,
+      id: `p-${Date.now()}`,
+      name: `${prompt.name}_copy`,
+      version: prompt.version + 1,
+      is_locked: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      versions: [
+        { version: prompt.version + 1, content: prompt.content, changed_by: "admin", changed_at: new Date().toISOString(), note: `Cloned from ${prompt.name} v${prompt.version}` },
+        ...prompt.versions,
+      ],
+      performance_stats: { uses: 0, avg_confidence: 0, avg_engagement: 0, compliance_pass_rate: 0 },
+    };
+    setPrompts((prev) => [newPrompt, ...prev]);
+    setSelectedPrompt(newPrompt);
+  }
+
+  async function testPrompt(promptId: string) {
+    setTestingPrompt(promptId);
+    setTestResult(null);
+    await new Promise((r) => setTimeout(r, 1500));
+    setTestingPrompt(null);
+    setTestResult(promptId);
+    setTimeout(() => setTestResult(null), 4000);
+  }
 
   const filteredPrompts = filterType === "all"
     ? prompts
@@ -1043,7 +1258,30 @@ function PromptLibraryTab() {
               ))}
             </SelectContent>
           </Select>
-          <Button size="sm" variant="outline" className="text-xs gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs gap-1"
+            onClick={() => {
+              const newPrompt: PromptTemplate = {
+                id: `p-${Date.now()}`,
+                name: `new_prompt_v1`,
+                type: "market_proposal" as PromptType,
+                version: 1,
+                content: "Enter your prompt template here...",
+                variables: [],
+                is_locked: false,
+                last_used: null,
+                performance_stats: { uses: 0, avg_confidence: 0, avg_engagement: 0, compliance_pass_rate: 0 },
+                examples: [],
+                versions: [{ version: 1, content: "...", changed_by: "admin", changed_at: new Date().toISOString(), note: "Initial version" }],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              };
+              setPrompts((prev) => [newPrompt, ...prev]);
+              setSelectedPrompt(newPrompt);
+            }}
+          >
             <Plus className="h-3 w-3" /> New
           </Button>
         </div>
@@ -1093,14 +1331,44 @@ function PromptLibraryTab() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="text-xs gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs gap-1"
+                    onClick={() => toggleLock(selectedPrompt.id)}
+                  >
                     {selectedPrompt.is_locked ? <Unlock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
                     {selectedPrompt.is_locked ? "Unlock" : "Lock"}
                   </Button>
-                  <Button size="sm" variant="outline" className="text-xs gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs gap-1"
+                    onClick={() => clonePrompt(selectedPrompt)}
+                  >
                     <Copy className="h-3 w-3" /> Duplicate
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs gap-1"
+                    disabled={testingPrompt === selectedPrompt.id}
+                    onClick={() => testPrompt(selectedPrompt.id)}
+                  >
+                    {testingPrompt === selectedPrompt.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <FlaskConical className="h-3 w-3" />
+                    )}
+                    {testingPrompt === selectedPrompt.id ? "Testing..." : "Test"}
+                  </Button>
                 </div>
+                {testResult === selectedPrompt.id && (
+                  <div className="mt-2 rounded-lg border border-green-200 bg-green-50 p-2 text-xs text-green-800 flex items-center gap-1.5">
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    Test passed — prompt compiled and returned valid output structure.
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1195,8 +1463,8 @@ function PromptLibraryTab() {
 // ── Tab: Sources & Research ───────────────────────────────────────────
 
 function SourcesResearchTab() {
-  const [sources] = useState<WhitelistedSource[]>(SAMPLE_SOURCES);
-  const [feeds] = useState<RSSFeed[]>(SAMPLE_FEEDS);
+  const [sources, setSources] = useState<WhitelistedSource[]>(SAMPLE_SOURCES);
+  const [feeds, setFeeds] = useState<RSSFeed[]>(SAMPLE_FEEDS);
   const [trendInputs, setTrendInputs] = useState<TrendInput[]>(SAMPLE_TREND_INPUTS);
   const [newDomain, setNewDomain] = useState("");
   const [newFeedUrl, setNewFeedUrl] = useState("");
@@ -1240,8 +1508,41 @@ function SourcesResearchTab() {
                 value={newDomain}
                 onChange={(e) => setNewDomain(e.target.value)}
                 className="h-8 text-xs flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newDomain.trim()) {
+                    const newSource: WhitelistedSource = {
+                      id: `s-${Date.now()}`,
+                      domain: newDomain.trim(),
+                      name: newDomain.trim(),
+                      type: "news",
+                      reliability_score: 0.80,
+                      is_active: true,
+                      added_at: new Date().toISOString().slice(0, 10),
+                    };
+                    setSources((prev) => [...prev, newSource]);
+                    setNewDomain("");
+                  }
+                }}
               />
-              <Button size="sm" className="text-xs gap-1">
+              <Button
+                size="sm"
+                className="text-xs gap-1"
+                onClick={() => {
+                  if (newDomain.trim()) {
+                    const newSource: WhitelistedSource = {
+                      id: `s-${Date.now()}`,
+                      domain: newDomain.trim(),
+                      name: newDomain.trim(),
+                      type: "news",
+                      reliability_score: 0.80,
+                      is_active: true,
+                      added_at: new Date().toISOString().slice(0, 10),
+                    };
+                    setSources((prev) => [...prev, newSource]);
+                    setNewDomain("");
+                  }
+                }}
+              >
                 <Plus className="h-3 w-3" /> Add
               </Button>
             </div>
@@ -1271,10 +1572,25 @@ function SourcesResearchTab() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Switch checked={source.is_active} className="scale-75" />
+                      <Switch
+                        checked={source.is_active}
+                        onCheckedChange={(checked) => {
+                          setSources((prev) =>
+                            prev.map((s) =>
+                              s.id === source.id ? { ...s, is_active: checked } : s
+                            )
+                          );
+                        }}
+                        className="scale-75"
+                      />
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setSources((prev) => prev.filter((s) => s.id !== source.id))}
+                      >
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </TableCell>
@@ -1301,8 +1617,43 @@ function SourcesResearchTab() {
                 value={newFeedUrl}
                 onChange={(e) => setNewFeedUrl(e.target.value)}
                 className="h-8 text-xs flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newFeedUrl.trim()) {
+                    const newFeed: RSSFeed = {
+                      id: `f-${Date.now()}`,
+                      url: newFeedUrl.trim(),
+                      name: new URL(newFeedUrl.trim()).hostname.replace("www.", ""),
+                      category: "General",
+                      last_fetched: null,
+                      is_active: true,
+                      item_count: 0,
+                    };
+                    setFeeds((prev) => [...prev, newFeed]);
+                    setNewFeedUrl("");
+                  }
+                }}
               />
-              <Button size="sm" className="text-xs gap-1">
+              <Button
+                size="sm"
+                className="text-xs gap-1"
+                onClick={() => {
+                  if (newFeedUrl.trim()) {
+                    let feedName = newFeedUrl.trim();
+                    try { feedName = new URL(newFeedUrl.trim()).hostname.replace("www.", ""); } catch { /* use raw */ }
+                    const newFeed: RSSFeed = {
+                      id: `f-${Date.now()}`,
+                      url: newFeedUrl.trim(),
+                      name: feedName,
+                      category: "General",
+                      last_fetched: null,
+                      is_active: true,
+                      item_count: 0,
+                    };
+                    setFeeds((prev) => [...prev, newFeed]);
+                    setNewFeedUrl("");
+                  }
+                }}
+              >
                 <Plus className="h-3 w-3" /> Add
               </Button>
             </div>
@@ -1334,10 +1685,25 @@ function SourcesResearchTab() {
                       {feed.last_fetched ? new Date(feed.last_fetched).toLocaleString() : "Never"}
                     </TableCell>
                     <TableCell>
-                      <Switch checked={feed.is_active} className="scale-75" />
+                      <Switch
+                        checked={feed.is_active}
+                        onCheckedChange={(checked) => {
+                          setFeeds((prev) =>
+                            prev.map((f) =>
+                              f.id === feed.id ? { ...f, is_active: checked } : f
+                            )
+                          );
+                        }}
+                        className="scale-75"
+                      />
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => setFeeds((prev) => prev.filter((f) => f.id !== feed.id))}
+                      >
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </TableCell>
@@ -1474,7 +1840,7 @@ function GuardrailsTab() {
     "Pre-launch",
     "Not financial or medical advice",
   ]);
-  const [riskCategories] = useState([
+  const [riskCategories, setRiskCategories] = useState([
     { category: "Women's Health", default_risk: "medium" as RiskLevel, requires_extra_review: true },
     { category: "Femtech", default_risk: "low" as RiskLevel, requires_extra_review: false },
     { category: "Reproductive Rights", default_risk: "high" as RiskLevel, requires_extra_review: true },
@@ -1638,7 +2004,17 @@ function GuardrailsTab() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Switch checked={rc.requires_extra_review} className="scale-75" />
+                    <Switch
+                      checked={rc.requires_extra_review}
+                      onCheckedChange={(checked) => {
+                        setRiskCategories((prev) =>
+                          prev.map((r) =>
+                            r.category === rc.category ? { ...r, requires_extra_review: checked } : r
+                          )
+                        );
+                      }}
+                      className="scale-75"
+                    />
                   </TableCell>
                 </TableRow>
               ))}
@@ -1652,11 +2028,35 @@ function GuardrailsTab() {
 
 // ── Tab: Runs & Logs ──────────────────────────────────────────────────
 
-function RunsLogsTab() {
-  const [runs] = useState<AIRunLog[]>(SAMPLE_RUNS);
+function RunsLogsTab({ runs, setRuns }: { runs: AIRunLog[]; setRuns: React.Dispatch<React.SetStateAction<AIRunLog[]>> }) {
   const [expandedRun, setExpandedRun] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
+  const [rerunningId, setRerunningId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function handleRerun(run: AIRunLog) {
+    setRerunningId(run.id);
+    await new Promise((r) => setTimeout(r, 2000));
+    const rerun = createRunLog(run.run_type, "completed", {
+      input_payload: run.input_payload,
+      prompt_version: run.prompt_version,
+      model_used: run.model_used,
+      duration_ms: 1000 + Math.floor(Math.random() * 3000),
+      tokens_used: 500 + Math.floor(Math.random() * 4000),
+    });
+    // Update the old failed run to show it was retried, and add the new successful run
+    setRuns((prev) =>
+      [rerun, ...prev.map((r) => r.id === run.id ? { ...r, error: `${r.error} (retried)` } : r)]
+    );
+    setRerunningId(null);
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await new Promise((r) => setTimeout(r, 800));
+    setRefreshing(false);
+  }
 
   const filteredRuns = runs.filter((r) => {
     if (filterStatus !== "all" && r.status !== filterStatus) return false;
@@ -1694,8 +2094,14 @@ function RunsLogsTab() {
             <SelectItem value="scoring">Scoring</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" className="text-xs gap-1 ml-auto">
-          <RefreshCw className="h-3 w-3" /> Refresh
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs gap-1 ml-auto"
+          disabled={refreshing}
+          onClick={handleRefresh}
+        >
+          <RefreshCw className={`h-3 w-3 ${refreshing ? "animate-spin" : ""}`} /> {refreshing ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
 
@@ -1729,8 +2135,24 @@ function RunsLogsTab() {
                       <span className="font-mono text-xs">{run.prompt_version}</span>
                     </div>
                     {run.error && (
-                      <div className="mt-2 p-2 rounded bg-red-50 dark:bg-red-950/20 text-xs text-red-700 dark:text-red-400">
-                        {run.error}
+                      <div className="mt-2 p-2 rounded bg-red-50 dark:bg-red-950/20 text-xs text-red-700 dark:text-red-400 flex items-center justify-between gap-2">
+                        <span>{run.error}</span>
+                        {run.status === "failed" && !run.error.includes("(retried)") && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs gap-1 shrink-0 border-red-300 hover:bg-red-100"
+                            disabled={rerunningId === run.id}
+                            onClick={() => handleRerun(run)}
+                          >
+                            {rerunningId === run.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <RotateCcw className="h-3 w-3" />
+                            )}
+                            {rerunningId === run.id ? "Rerunning..." : "Rerun"}
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1808,6 +2230,8 @@ function RunsLogsTab() {
 // ── Main Page ─────────────────────────────────────────────────────────
 
 export default function AIStudioPage() {
+  const [runs, setRuns] = useState<AIRunLog[]>(SAMPLE_RUNS);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1852,7 +2276,7 @@ export default function AIStudioPage() {
         </TabsList>
 
         <TabsContent value="generate">
-          <GenerateTab />
+          <GenerateTab runs={runs} setRuns={setRuns} />
         </TabsContent>
         <TabsContent value="prompts">
           <PromptLibraryTab />
@@ -1864,7 +2288,7 @@ export default function AIStudioPage() {
           <GuardrailsTab />
         </TabsContent>
         <TabsContent value="runs">
-          <RunsLogsTab />
+          <RunsLogsTab runs={runs} setRuns={setRuns} />
         </TabsContent>
       </Tabs>
     </div>
