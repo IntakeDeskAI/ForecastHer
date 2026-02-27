@@ -41,9 +41,11 @@ BEGIN
   INSERT INTO profiles (id, username, display_name)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'username', 'user_' || LEFT(NEW.id::TEXT, 8)),
+    COALESCE(NEW.raw_user_meta_data->>'username', 'user_' || LEFT(NEW.id::TEXT, 12)),
     COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'username')
-  );
+  )
+  ON CONFLICT (username) DO UPDATE
+  SET username = 'user_' || LEFT(NEW.id::TEXT, 20);
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
