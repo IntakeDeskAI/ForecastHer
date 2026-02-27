@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1135,12 +1135,6 @@ function ScriptLibraryTab({ initialChannel, initialScriptId }: {
   const [approvedDrafts, setApprovedDrafts] = useState<ApprovedDraft[]>([]);
   const [showApproved, setShowApproved] = useState(false);
 
-  // Update when navigated to from calendar deep links
-  useEffect(() => {
-    if (initialChannel) setFilterChannel(initialChannel);
-    if (initialScriptId) setExpandedScript(initialScriptId);
-  }, [initialChannel, initialScriptId]);
-
   function handleCopy(id: string, text: string) {
     navigator.clipboard.writeText(text);
     setCopied(id);
@@ -2000,22 +1994,24 @@ const VALID_TABS = ["calendar", "tasks", "scripts", "leads", "reporting"];
 
 export default function GrowthOpsPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const tabParam = searchParams.get("tab");
-  const activeTab = VALID_TABS.includes(tabParam ?? "") ? tabParam! : "calendar";
+
+  // React state is the source of truth for the active tab
+  const [activeTab, setActiveTab] = useState(
+    VALID_TABS.includes(tabParam ?? "") ? tabParam! : "calendar"
+  );
 
   // State for script deep-link navigation from calendar badges
-  const [scriptNav, setScriptNav] = useState<{ channel?: string; scriptId?: string }>({});
-
-  function setActiveTab(tab: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("tab", tab);
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }
+  // Uses a counter to force ScriptLibraryTab to remount with new props
+  const [scriptNav, setScriptNav] = useState<{ channel?: string; scriptId?: string; key: number }>({ key: 0 });
 
   function handleCalendarNavigate(tab: string, opts?: { scriptChannel?: string; scriptId?: string }) {
     if (opts?.scriptChannel || opts?.scriptId) {
-      setScriptNav({ channel: opts.scriptChannel, scriptId: opts.scriptId });
+      setScriptNav({
+        channel: opts.scriptChannel,
+        scriptId: opts.scriptId,
+        key: Date.now(),
+      });
     }
     setActiveTab(tab);
   }
@@ -2053,6 +2049,7 @@ export default function GrowthOpsPage() {
         <TabsContent value="tasks" className="mt-4"><TaskQueueTab /></TabsContent>
         <TabsContent value="scripts" className="mt-4">
           <ScriptLibraryTab
+            key={scriptNav.key}
             initialChannel={scriptNav.channel}
             initialScriptId={scriptNav.scriptId}
           />
