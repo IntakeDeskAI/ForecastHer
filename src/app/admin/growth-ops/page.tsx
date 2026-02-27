@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1955,7 +1956,20 @@ function ReportingTab() {
    MAIN PAGE
    ═══════════════════════════════════════════════════════════════════════ */
 
+const VALID_TABS = ["calendar", "tasks", "scripts", "leads", "reporting"];
+
 export default function GrowthOpsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabParam = searchParams.get("tab");
+  const activeTab = VALID_TABS.includes(tabParam ?? "") ? tabParam! : "calendar";
+
+  function setActiveTab(tab: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -1975,7 +1989,7 @@ export default function GrowthOpsPage() {
         ]}
       />
 
-      <Tabs defaultValue="calendar">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
           <TabsTrigger value="tasks">Task Queue</TabsTrigger>
