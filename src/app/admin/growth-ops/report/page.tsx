@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -25,14 +26,15 @@ import {
   Sparkles,
   Loader2,
   Calendar,
-  RefreshCw,
   Plus,
   Heart,
   Repeat2,
   MessageCircle,
   Bookmark,
   ExternalLink,
-  CheckCircle,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -88,14 +90,21 @@ export default function ReportPage() {
   const [topPosts, setTopPosts] = useState<XPost[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Sync state
-  const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState("");
-
   // Track tweet state
   const [trackUrl, setTrackUrl] = useState("");
+  const [trackText, setTrackText] = useState("");
+  const [trackImpressions, setTrackImpressions] = useState("");
+  const [trackLikes, setTrackLikes] = useState("");
+  const [trackRetweets, setTrackRetweets] = useState("");
+  const [trackReplies, setTrackReplies] = useState("");
+  const [trackBookmarks, setTrackBookmarks] = useState("");
   const [tracking, setTracking] = useState(false);
   const [trackResult, setTrackResult] = useState("");
+
+  // Inline edit state
+  const [editingTweetId, setEditingTweetId] = useState<string | null>(null);
+  const [editFields, setEditFields] = useState({ impressions: "", likes: "", retweets: "", replies: "", bookmarks: "" });
+  const [saving, setSaving] = useState(false);
 
   // Debrief
   const [generatingDebrief, setGeneratingDebrief] = useState(false);
@@ -129,30 +138,6 @@ export default function ReportPage() {
     fetchMetrics();
   }, [fetchMetrics]);
 
-  async function handleSyncX() {
-    setSyncing(true);
-    setSyncResult("");
-    try {
-      const res = await fetch("/api/admin/growth-ops/fetch-x-metrics", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setSyncResult(data.error || "Sync failed.");
-        return;
-      }
-      setSyncResult(`Synced ${data.synced} tweets. ${data.totals.impressions.toLocaleString()} total impressions.`);
-      // Refresh metrics
-      await fetchMetrics();
-    } catch (err) {
-      setSyncResult(err instanceof Error ? err.message : "Network error.");
-    } finally {
-      setSyncing(false);
-    }
-  }
-
   async function handleTrackTweet() {
     if (!trackUrl.trim()) return;
     setTracking(true);
@@ -161,20 +146,75 @@ export default function ReportPage() {
       const res = await fetch("/api/admin/growth-ops/track-tweet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tweetUrl: trackUrl.trim() }),
+        body: JSON.stringify({
+          tweetUrl: trackUrl.trim(),
+          textPreview: trackText.trim() || undefined,
+          impressions: trackImpressions ? parseInt(trackImpressions) : undefined,
+          likes: trackLikes ? parseInt(trackLikes) : undefined,
+          retweets: trackRetweets ? parseInt(trackRetweets) : undefined,
+          replies: trackReplies ? parseInt(trackReplies) : undefined,
+          bookmarks: trackBookmarks ? parseInt(trackBookmarks) : undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         setTrackResult(data.error || "Failed to track tweet.");
         return;
       }
-      setTrackResult("Tweet tracked! Click 'Sync from X' to pull its metrics.");
+      setTrackResult("Tweet tracked with metrics!");
       setTrackUrl("");
+      setTrackText("");
+      setTrackImpressions("");
+      setTrackLikes("");
+      setTrackRetweets("");
+      setTrackReplies("");
+      setTrackBookmarks("");
       await fetchMetrics();
     } catch (err) {
       setTrackResult(err instanceof Error ? err.message : "Network error.");
     } finally {
       setTracking(false);
+    }
+  }
+
+  function startEdit(post: XPost) {
+    setEditingTweetId(post.tweet_id);
+    setEditFields({
+      impressions: String(post.impressions),
+      likes: String(post.likes),
+      retweets: String(post.retweets),
+      replies: String(post.replies),
+      bookmarks: String(post.bookmarks),
+    });
+  }
+
+  function cancelEdit() {
+    setEditingTweetId(null);
+  }
+
+  async function saveEdit(tweetId: string) {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/growth-ops/track-tweet", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tweetId,
+          impressions: parseInt(editFields.impressions) || 0,
+          likes: parseInt(editFields.likes) || 0,
+          retweets: parseInt(editFields.retweets) || 0,
+          replies: parseInt(editFields.replies) || 0,
+          bookmarks: parseInt(editFields.bookmarks) || 0,
+        }),
+      });
+      if (res.ok) {
+        setEditingTweetId(null);
+        await fetchMetrics();
+      }
+    } catch {
+      // Silent fail
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -201,7 +241,7 @@ export default function ReportPage() {
         setDebrief(data.draft);
       } else {
         setDebrief(
-          "## Weekly Debrief\n\n**What worked:**\n- (Synced X metrics to track real performance)\n\n**What to stop:**\n- N/A\n\n**What to double down on:**\n- Ship the daily loop consistently for 7 days to generate enough data for real analysis."
+          "## Weekly Debrief\n\n**What worked:**\n- (Add more tweets and metrics to generate real insights)\n\n**What to stop:**\n- N/A\n\n**What to double down on:**\n- Ship the daily loop consistently for 7 days to generate enough data for real analysis."
         );
       }
     } catch {
@@ -213,63 +253,108 @@ export default function ReportPage() {
 
   return (
     <div className="space-y-6">
-      {/* Sync Controls */}
+      {/* Track Tweet + Manual Metrics */}
       <Card className="border-blue-200 dark:border-blue-800">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-serif flex items-center gap-2">
-              <RefreshCw className="h-4 w-4" /> X Data Sync
-            </CardTitle>
-            <Button
-              size="sm"
-              onClick={handleSyncX}
-              disabled={syncing}
-              className="gap-1 text-xs"
-            >
-              {syncing ? (
-                <><Loader2 className="h-3 w-3 animate-spin" /> Syncing...</>
-              ) : (
-                <><RefreshCw className="h-3 w-3" /> Sync from X</>
-              )}
-            </Button>
-          </div>
+          <CardTitle className="text-base font-serif flex items-center gap-2">
+            <Plus className="h-4 w-4" /> Log Tweet + Metrics
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Paste tweet URLs to track them, then sync to pull impressions, likes, retweets, and replies from the X API.
+            Paste a tweet URL and enter the numbers you see on X. No API needed — just copy from X analytics.
           </p>
 
-          {/* Track Tweet Input */}
-          <div className="flex gap-2">
-            <Input
-              value={trackUrl}
-              onChange={(e) => setTrackUrl(e.target.value)}
-              placeholder="https://x.com/yourhandle/status/123456789"
-              className="text-sm flex-1"
-              onKeyDown={(e) => e.key === "Enter" && handleTrackTweet()}
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleTrackTweet}
-              disabled={tracking || !trackUrl.trim()}
-              className="gap-1 text-xs shrink-0"
-            >
-              {tracking ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <Plus className="h-3 w-3" />
-              )}
-              Track Tweet
-            </Button>
+          {/* Row 1: URL + tweet text */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Tweet URL</Label>
+              <Input
+                value={trackUrl}
+                onChange={(e) => setTrackUrl(e.target.value)}
+                placeholder="https://x.com/yourhandle/status/123456789"
+                className="text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tweet text (optional)</Label>
+              <Input
+                value={trackText}
+                onChange={(e) => setTrackText(e.target.value)}
+                placeholder="Paste the tweet text for reference"
+                className="text-sm"
+              />
+            </div>
           </div>
 
-          {/* Status messages */}
-          {syncResult && (
-            <div className={`text-xs px-2 py-1 rounded ${syncResult.startsWith("Synced") ? "bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-400" : "bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400"}`}>
-              {syncResult}
+          {/* Row 2: Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1"><Eye className="h-3 w-3" /> Impressions</Label>
+              <Input
+                type="number"
+                value={trackImpressions}
+                onChange={(e) => setTrackImpressions(e.target.value)}
+                placeholder="0"
+                className="text-sm font-mono"
+              />
             </div>
-          )}
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1"><Heart className="h-3 w-3" /> Likes</Label>
+              <Input
+                type="number"
+                value={trackLikes}
+                onChange={(e) => setTrackLikes(e.target.value)}
+                placeholder="0"
+                className="text-sm font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1"><Repeat2 className="h-3 w-3" /> Retweets</Label>
+              <Input
+                type="number"
+                value={trackRetweets}
+                onChange={(e) => setTrackRetweets(e.target.value)}
+                placeholder="0"
+                className="text-sm font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1"><MessageCircle className="h-3 w-3" /> Replies</Label>
+              <Input
+                type="number"
+                value={trackReplies}
+                onChange={(e) => setTrackReplies(e.target.value)}
+                placeholder="0"
+                className="text-sm font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs flex items-center gap-1"><Bookmark className="h-3 w-3" /> Bookmarks</Label>
+              <Input
+                type="number"
+                value={trackBookmarks}
+                onChange={(e) => setTrackBookmarks(e.target.value)}
+                placeholder="0"
+                className="text-sm font-mono"
+              />
+            </div>
+          </div>
+
+          <Button
+            size="sm"
+            onClick={handleTrackTweet}
+            disabled={tracking || !trackUrl.trim()}
+            className="gap-1"
+          >
+            {tracking ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Plus className="h-3 w-3" />
+            )}
+            Log Tweet
+          </Button>
+
           {trackResult && (
             <div className={`text-xs px-2 py-1 rounded ${trackResult.startsWith("Tweet tracked") ? "bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-400" : "bg-red-50 text-red-700 dark:bg-red-950/20 dark:text-red-400"}`}>
               {trackResult}
@@ -375,9 +460,9 @@ export default function ReportPage() {
             <CardTitle className="text-base font-serif flex items-center gap-2">
               <BarChart3 className="h-4 w-4" /> X Post Performance
             </CardTitle>
-            {topPosts.length > 0 && topPosts[0].last_synced_at && (
+            {topPosts.length > 0 && (
               <span className="text-[10px] text-muted-foreground">
-                Last synced: {new Date(topPosts[0].last_synced_at).toLocaleString()}
+                {topPosts.length} tweets tracked
               </span>
             )}
           </div>
@@ -388,7 +473,7 @@ export default function ReportPage() {
               <BarChart3 className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
               <h3 className="font-semibold text-base">No X posts tracked yet</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Paste tweet URLs above and click &quot;Track Tweet&quot;, then &quot;Sync from X&quot; to pull metrics.
+                Use the form above to log tweets with their metrics from X analytics.
               </p>
             </div>
           ) : (
@@ -411,7 +496,7 @@ export default function ReportPage() {
                   <TableHead className="text-right">
                     <div className="flex items-center justify-end gap-1"><Bookmark className="h-3 w-3" /> Saves</div>
                   </TableHead>
-                  <TableHead className="w-8" />
+                  <TableHead className="w-16" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -432,16 +517,54 @@ export default function ReportPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-mono text-sm">{post.impressions.toLocaleString()}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{post.likes}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{post.retweets}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{post.replies}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">{post.bookmarks}</TableCell>
-                    <TableCell>
-                      <a href={post.tweet_url} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                      </a>
-                    </TableCell>
+
+                    {editingTweetId === post.tweet_id ? (
+                      <>
+                        <TableCell className="text-right">
+                          <Input type="number" value={editFields.impressions} onChange={(e) => setEditFields({ ...editFields, impressions: e.target.value })} className="w-20 text-xs font-mono h-7 ml-auto text-right" />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Input type="number" value={editFields.likes} onChange={(e) => setEditFields({ ...editFields, likes: e.target.value })} className="w-16 text-xs font-mono h-7 ml-auto text-right" />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Input type="number" value={editFields.retweets} onChange={(e) => setEditFields({ ...editFields, retweets: e.target.value })} className="w-16 text-xs font-mono h-7 ml-auto text-right" />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Input type="number" value={editFields.replies} onChange={(e) => setEditFields({ ...editFields, replies: e.target.value })} className="w-16 text-xs font-mono h-7 ml-auto text-right" />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Input type="number" value={editFields.bookmarks} onChange={(e) => setEditFields({ ...editFields, bookmarks: e.target.value })} className="w-16 text-xs font-mono h-7 ml-auto text-right" />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => saveEdit(post.tweet_id)} disabled={saving}>
+                              {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3 text-green-600" />}
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelEdit}>
+                              <X className="h-3 w-3 text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell className="text-right font-mono text-sm">{post.impressions.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">{post.likes}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">{post.retweets}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">{post.replies}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">{post.bookmarks}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => startEdit(post)}>
+                              <Pencil className="h-3 w-3 text-muted-foreground" />
+                            </Button>
+                            <a href={post.tweet_url} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground mt-1.5" />
+                            </a>
+                          </div>
+                        </TableCell>
+                      </>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>

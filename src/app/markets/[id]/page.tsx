@@ -7,6 +7,7 @@ import { yesPrice, formatPct } from "@/lib/lmsr";
 import { Clock, BarChart3, Users, Info } from "lucide-react";
 import type { Market } from "@/lib/types";
 import type { Metadata } from "next";
+import { MarketViewTracker } from "@/components/page-view-tracker";
 
 const categoryConfig: Record<string, { emoji: string; label: string; className: string }> = {
   "womens-health": { emoji: "💊", label: "Women's Health", className: "bg-[#ede9fe] text-[#7c3aed]" },
@@ -96,6 +97,7 @@ export default async function MarketPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10">
+      <MarketViewTracker marketId={market.id} marketTitle={market.title} />
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">

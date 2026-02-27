@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { Search, TrendingUp, DollarSign, Trophy } from "lucide-react";
 import type { Metadata } from "next";
+import { HowItWorksViewTracker } from "@/components/page-view-tracker";
 
 export const metadata: Metadata = {
   title: "How It Works",
@@ -38,6 +39,7 @@ const steps = [
 export default function HowItWorksPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-16">
+      <HowItWorksViewTracker />
       <div className="text-center mb-16">
         <h1 className="font-serif text-3xl md:text-4xl font-bold mb-4">
           How ForecastHer Works

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MarketCard } from "@/components/market-card";
 import { WaitlistForm } from "@/components/waitlist-form";
+import { TrackedWaitlistLink } from "@/components/tracked-waitlist-link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Market } from "@/lib/types";
@@ -262,16 +263,16 @@ export default async function HomePage() {
               : "Pre-launch beta with play-money beta credits. Built for clear rules, clean sources, and transparent outcomes."}
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <a href="#waitlist">
+            <TrackedWaitlistLink href="#waitlist" location="social_proof_strip">
               <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/15 transition-colors">
                 Join the waitlist
               </span>
-            </a>
-            <a href="#waitlist">
+            </TrackedWaitlistLink>
+            <TrackedWaitlistLink href="#waitlist" location="social_proof_strip_beta">
               <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-muted text-muted-foreground text-xs font-medium hover:bg-muted/80 transition-colors">
                 Request beta access
               </span>
-            </a>
+            </TrackedWaitlistLink>
             <Link href="/how-it-works">
               <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-muted text-muted-foreground text-xs font-medium hover:bg-muted/80 transition-colors">
                 See how markets resolve
@@ -486,11 +487,11 @@ export default async function HomePage() {
               We&apos;re recruiting advisors in women&apos;s health and market design.
               Want to help set the standard?
             </p>
-            <a href="#waitlist">
+            <TrackedWaitlistLink href="#waitlist" location="advisor_cta">
               <Button className="gradient-purple text-white">
                 Apply to Advise
               </Button>
-            </a>
+            </TrackedWaitlistLink>
           </div>
         </div>
       </section>
