@@ -61,18 +61,18 @@ export default function AdminLoginPage() {
 
     // If MFA is not enrolled, redirect to enrollment
     if (!result.mfa_enabled) {
-      router.push("/admin/mfa/enroll");
+      router.push("/mfa/enroll");
       return;
     }
 
     // If MFA is enrolled but not yet verified this session (aal1 -> needs aal2)
     if (aalData.currentLevel === "aal1" && aalData.nextLevel === "aal2") {
-      router.push("/admin/mfa/verify");
+      router.push("/mfa/verify");
       return;
     }
 
     // Fully authenticated
-    router.push("/admin");
+    router.push("/");
     router.refresh();
   }
 

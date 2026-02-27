@@ -32,7 +32,7 @@ export default function MfaVerifyPage() {
 
     if (!verifiedFactor) {
       // No verified factor — redirect to enrollment
-      router.push("/admin/mfa/enroll");
+      router.push("/mfa/enroll");
       return;
     }
 
@@ -121,7 +121,7 @@ export default function MfaVerifyPage() {
       }),
     });
 
-    router.push("/admin");
+    router.push("/");
     router.refresh();
   }
 

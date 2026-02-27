@@ -31,19 +31,19 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/admin", label: "Command Center", icon: LayoutDashboard },
-  { href: "/admin/growth-ops", label: "Growth Ops", icon: Rocket },
-  { href: "/admin/markets", label: "Markets", icon: TrendingUp },
-  { href: "/admin/content", label: "Content Studio", icon: FileEdit },
-  { href: "/admin/scheduler", label: "Scheduler", icon: Calendar },
-  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/admin/community", label: "Community", icon: Users },
-  { href: "/admin/ai-studio", label: "AI Studio", icon: Sparkles },
-  { href: "/admin/workflows", label: "Workflows", icon: Workflow },
-  { href: "/admin/settings", label: "Admin", icon: Settings },
+  { href: "/", label: "Command Center", icon: LayoutDashboard },
+  { href: "/growth-ops", label: "Growth Ops", icon: Rocket },
+  { href: "/markets", label: "Markets", icon: TrendingUp },
+  { href: "/content", label: "Content Studio", icon: FileEdit },
+  { href: "/scheduler", label: "Scheduler", icon: Calendar },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/community", label: "Community", icon: Users },
+  { href: "/ai-studio", label: "AI Studio", icon: Sparkles },
+  { href: "/workflows", label: "Workflows", icon: Workflow },
+  { href: "/settings", label: "Admin", icon: Settings },
 ];
 
-const BARE_ROUTES = ["/admin/login", "/admin/mfa"];
+const BARE_ROUTES = ["/login", "/mfa"];
 
 export default function AdminLayout({
   children,
@@ -64,12 +64,12 @@ export default function AdminLayout({
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    router.push("/admin/login");
+    router.push("/login");
     router.refresh();
   }
 
   function isActive(href: string) {
-    if (href === "/admin") return pathname === "/admin";
+    if (href === "/") return pathname === "/";
     return pathname.startsWith(href);
   }
 
@@ -98,7 +98,7 @@ export default function AdminLayout({
         {/* Sidebar header */}
         <div className="flex h-14 items-center justify-between border-b border-border px-3">
           {!collapsed && (
-            <Link href="/admin" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <span className="text-lg">🔮</span>
               <span className="font-serif font-bold text-sm text-gradient-brand">
                 ForecastHer

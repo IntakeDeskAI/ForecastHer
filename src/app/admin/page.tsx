@@ -136,7 +136,7 @@ const SETUP_STEPS = [
     id: "tokens",
     label: "Connect at least one platform token",
     description: "Link your X, Instagram, TikTok, or LinkedIn account for automated posting.",
-    href: "/admin/settings",
+    href: "/settings",
     linkLabel: "Go to Tokens",
     check: (s: SystemState) => s.tokensConnected > 0,
   },
@@ -144,7 +144,7 @@ const SETUP_STEPS = [
     id: "email",
     label: "Configure email provider",
     description: "Set up your email service for weekly digests and notifications.",
-    href: "/admin/settings",
+    href: "/settings",
     linkLabel: "Configure Email",
     check: (s: SystemState) => s.emailConfigured,
   },
@@ -152,7 +152,7 @@ const SETUP_STEPS = [
     id: "workflows",
     label: "Enable at least one workflow schedule",
     description: "Activate Market of the Day, Weekly Digest, or Trend Scan automation.",
-    href: "/admin/workflows",
+    href: "/workflows",
     linkLabel: "Go to Workflows",
     check: (s: SystemState) => s.workflowsEnabled > 0,
   },
@@ -160,7 +160,7 @@ const SETUP_STEPS = [
     id: "trend_scan",
     label: "Run your first trend scan",
     description: "Scan trends to populate your market inbox with AI-proposed questions.",
-    href: "/admin/ai-studio",
+    href: "/ai-studio",
     linkLabel: "Open AI Studio",
     check: (s: SystemState) => s.firstTrendScanRun,
   },
@@ -356,18 +356,18 @@ function DailyRunbook({ state }: { state: SystemState }) {
 
   // Runbook changes based on setup state
   const setupPhaseSteps = [
-    { id: "setup-tokens", label: "Connect platform tokens", href: "/admin/settings", done: state.tokensConnected > 0 },
-    { id: "setup-email", label: "Configure email provider (Resend)", href: "/admin/settings", done: state.emailConfigured },
-    { id: "setup-workflows", label: "Enable at least one workflow", href: "/admin/workflows", done: state.workflowsEnabled > 0 },
-    { id: "setup-trend", label: "Run your first trend scan", href: "/admin/ai-studio", done: state.firstTrendScanRun },
+    { id: "setup-tokens", label: "Connect platform tokens", href: "/settings", done: state.tokensConnected > 0 },
+    { id: "setup-email", label: "Configure email provider (Resend)", href: "/settings", done: state.emailConfigured },
+    { id: "setup-workflows", label: "Enable at least one workflow", href: "/workflows", done: state.workflowsEnabled > 0 },
+    { id: "setup-trend", label: "Run your first trend scan", href: "/ai-studio", done: state.firstTrendScanRun },
   ];
 
   const operationalSteps = [
-    { id: "op-trend", label: "Check market inbox for new AI suggestions", href: "/admin/markets" },
-    { id: "op-review", label: "Review and approve queued drafts", href: "/admin/content" },
-    { id: "op-schedule", label: "Confirm today's scheduled posts", href: "/admin/scheduler" },
-    { id: "op-exceptions", label: "Fix any compliance-blocked items", href: "/admin/content" },
-    { id: "op-analytics", label: "Review yesterday's post performance", href: "/admin/analytics" },
+    { id: "op-trend", label: "Check market inbox for new AI suggestions", href: "/markets" },
+    { id: "op-review", label: "Review and approve queued drafts", href: "/content" },
+    { id: "op-schedule", label: "Confirm today's scheduled posts", href: "/scheduler" },
+    { id: "op-exceptions", label: "Fix any compliance-blocked items", href: "/content" },
+    { id: "op-analytics", label: "Review yesterday's post performance", href: "/analytics" },
   ];
 
   const isSetupPhase = !state.setupComplete;
@@ -452,36 +452,36 @@ function ContextAwareActions({ state }: { state: SystemState }) {
     primaryAction = {
       label: "Connect a Platform",
       icon: <Key className="h-4 w-4" />,
-      href: "/admin/settings",
+      href: "/settings",
       description: "No tokens connected. Connect a platform to enable posting.",
     };
     secondaryActions = [
-      { label: "Run Trend Scan", icon: <Search className="h-4 w-4" />, href: "/admin/ai-studio" },
-      { label: "Configure Workflows", icon: <Workflow className="h-4 w-4" />, href: "/admin/workflows" },
+      { label: "Run Trend Scan", icon: <Search className="h-4 w-4" />, href: "/ai-studio" },
+      { label: "Configure Workflows", icon: <Workflow className="h-4 w-4" />, href: "/workflows" },
     ];
   } else if (!state.firstTrendScanRun) {
     primaryAction = {
       label: "Run Trend Scan",
       icon: <Search className="h-4 w-4" />,
-      href: "/admin/ai-studio",
+      href: "/ai-studio",
       description: "No markets yet. Run a trend scan to populate your inbox.",
     };
     secondaryActions = [
-      { label: "Configure Workflows", icon: <Workflow className="h-4 w-4" />, href: "/admin/workflows" },
-      { label: "Review Tokens", icon: <Key className="h-4 w-4" />, href: "/admin/settings" },
+      { label: "Configure Workflows", icon: <Workflow className="h-4 w-4" />, href: "/workflows" },
+      { label: "Review Tokens", icon: <Key className="h-4 w-4" />, href: "/settings" },
     ];
   } else {
     // System is more set up - show operational actions
     primaryAction = {
       label: "Generate Today's Content",
       icon: <Sparkles className="h-4 w-4" />,
-      href: "/admin/ai-studio",
+      href: "/ai-studio",
       description: "Generate market proposals and draft content for today.",
     };
     secondaryActions = [
-      { label: "Review & Schedule", icon: <CalendarCheck className="h-4 w-4" />, href: "/admin/content" },
-      { label: "Pause All Posting", icon: <Pause className="h-4 w-4" />, href: "/admin/settings" },
-      { label: "Run Weekly Digest", icon: <Play className="h-4 w-4" />, href: "/admin/workflows" },
+      { label: "Review & Schedule", icon: <CalendarCheck className="h-4 w-4" />, href: "/content" },
+      { label: "Pause All Posting", icon: <Pause className="h-4 w-4" />, href: "/settings" },
+      { label: "Run Weekly Digest", icon: <Play className="h-4 w-4" />, href: "/workflows" },
     ];
   }
 

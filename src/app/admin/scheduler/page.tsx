@@ -333,12 +333,12 @@ function QueueView() {
               Approve drafts in Content Studio to add them to the schedule, or run the quickstart to generate content end-to-end.
             </p>
             <div className="flex justify-center gap-3 mt-4">
-              <Link href="/admin/content">
+              <Link href="/content">
                 <Button size="sm" className="gradient-purple text-white text-xs gap-1">
                   <Sparkles className="h-3 w-3" /> Go to Content Studio
                 </Button>
               </Link>
-              <Link href="/admin/ai-studio">
+              <Link href="/ai-studio">
                 <Button size="sm" variant="outline" className="text-xs gap-1">
                   Run Quickstart
                 </Button>
@@ -463,7 +463,7 @@ function QueueView() {
                           )}
                         </Button>
                         {post.token_error && (
-                          <Link href="/admin/settings">
+                          <Link href="/settings">
                             <Button
                               variant="outline"
                               size="sm"

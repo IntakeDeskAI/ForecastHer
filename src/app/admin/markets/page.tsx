@@ -231,7 +231,7 @@ function MarketInbox({
                       variant="outline"
                       size="sm"
                       className="text-xs"
-                      onClick={() => { window.location.href = "/admin/workflows"; }}
+                      onClick={() => { window.location.href = "/workflows"; }}
                     >
                       Enable Market of the Day Workflow
                     </Button>

@@ -97,7 +97,7 @@ export default function MfaEnrollPage() {
       body: JSON.stringify({ action: "audit_log", event: "mfa_enroll" }),
     });
 
-    router.push("/admin");
+    router.push("/");
     router.refresh();
   }
 
