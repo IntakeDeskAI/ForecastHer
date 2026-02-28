@@ -1,18 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import type { WorkflowDefinition, WorkflowRun } from "@/lib/types";
 import {
   Play,
   Pause,
@@ -20,94 +11,126 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  RotateCcw,
   ChevronRight,
   Workflow,
   Zap,
   Loader2,
   AlertTriangle,
+  RotateCcw,
 } from "lucide-react";
 import { HowItWorks } from "@/components/how-it-works";
 
-type WorkflowData = WorkflowDefinition & {
-  steps_count: number;
-  last_run?: WorkflowRun;
-  last_run_label?: string;
-};
+/* ═══════════════════════════════════════════════════════════════════════
+   TYPES
+   ═══════════════════════════════════════════════════════════════════════ */
 
-const INITIAL_WORKFLOWS: WorkflowData[] = [
+interface WorkflowDef {
+  id: string;
+  name: string;
+  description: string;
+  schedule: string;
+  steps: { name: string; label: string }[];
+}
+
+interface RunRecord {
+  id: string;
+  workflow_id: string;
+  status: "running" | "completed" | "failed" | "cancelled";
+  started_at: string;
+  completed_at: string | null;
+  steps_completed: number;
+  steps_total: number;
+  outputs: Record<string, unknown> | null;
+  error: string | null;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   WORKFLOW DEFINITIONS (matches API step definitions)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const WORKFLOWS: WorkflowDef[] = [
   {
     id: "market_of_the_day",
     name: "Market of the Day",
-    description: "Scan trends, propose markets, generate drafts for all platforms, run compliance checks, and schedule or flag for review.",
-    schedule: "0 8 * * *",
-    is_active: false,
-    config: {},
-    created_at: "2026-02-25",
-    steps_count: 11,
+    description: "Scan trends → generate market + 4-platform scripts with UTMs → pull current metrics.",
+    schedule: "Daily 8 AM",
+    steps: [
+      { name: "scan_trends", label: "Scan trends (X, Reddit, Google Trends)" },
+      { name: "generate_pack", label: "Generate market + scripts via Claude" },
+      { name: "fetch_metrics", label: "Pull current metrics" },
+    ],
   },
   {
     id: "weekly_digest",
     name: "Weekly Digest",
-    description: "Pull analytics, select top markets from the week, draft email, and queue for review.",
-    schedule: "0 7 * * 1",
-    is_active: false,
-    config: {},
-    created_at: "2026-02-25",
-    steps_count: 5,
+    description: "Pull week's metrics + analytics → generate email digest draft via Claude.",
+    schedule: "Mon 7 AM",
+    steps: [
+      { name: "fetch_metrics", label: "Pull weekly metrics" },
+      { name: "fetch_analytics", label: "Pull analytics summary" },
+      { name: "generate_digest", label: "Generate email digest draft" },
+    ],
   },
   {
     id: "resolution_verifier",
     name: "Resolution Verifier",
-    description: "Check for markets due for resolution, verify outcomes against sources, generate resolved posts and assets.",
-    schedule: "0 * * * *",
-    is_active: false,
-    config: {},
-    created_at: "2026-02-25",
-    steps_count: 6,
+    description: "Find markets due for resolution → verify outcomes against sources → generate resolution posts.",
+    schedule: "Hourly",
+    steps: [
+      { name: "fetch_due_markets", label: "Find markets due for resolution" },
+      { name: "verify_outcomes", label: "Verify outcomes against sources" },
+      { name: "generate_resolution_posts", label: "Generate resolution announcement" },
+    ],
   },
   {
     id: "trend_scan",
     name: "Trend Scan",
-    description: "Scan X, Reddit, Google Trends, and RSS feeds for emerging topics in women's health and femtech.",
-    schedule: "0 6 * * *",
-    is_active: false,
-    config: {},
-    created_at: "2026-02-25",
-    steps_count: 3,
+    description: "Scan X, Reddit, Google Trends, and RSS feeds for emerging women's health topics.",
+    schedule: "Daily 6 AM",
+    steps: [
+      { name: "scan_x", label: "Scan X for women's health trends" },
+      { name: "scan_reddit", label: "Scan Reddit and Google Trends" },
+      { name: "scan_rss", label: "Scan RSS feeds" },
+    ],
   },
   {
     id: "engagement_loop",
     name: "Engagement Loop",
-    description: "Monitor post performance, identify top-performing content, and suggest follow-up posts or threads.",
-    schedule: "0 18 * * *",
-    is_active: false,
-    config: {},
-    created_at: "2026-02-25",
-    steps_count: 4,
+    description: "Pull post performance → identify top performers → generate follow-up thread ideas.",
+    schedule: "Daily 6 PM",
+    steps: [
+      { name: "fetch_post_metrics", label: "Pull post performance" },
+      { name: "fetch_x_posts", label: "Fetch tracked X posts" },
+      { name: "identify_top_performers", label: "Identify top performers" },
+      { name: "generate_followup", label: "Generate follow-up thread idea" },
+    ],
   },
 ];
 
+/* ═══════════════════════════════════════════════════════════════════════
+   WORKFLOW CARD
+   ═══════════════════════════════════════════════════════════════════════ */
+
 function WorkflowCard({
   workflow,
-  onToggleActive,
-  onRunComplete,
+  runs,
+  onRun,
+  isActive,
+  onToggle,
 }: {
-  workflow: WorkflowData;
-  onToggleActive: (id: string) => void;
-  onRunComplete: (id: string) => void;
+  workflow: WorkflowDef;
+  runs: RunRecord[];
+  onRun: (id: string) => void;
+  isActive: boolean;
+  onToggle: (id: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [running, setRunning] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  function handleRunNow() {
-    setRunning(true);
-    setTimeout(() => {
-      setRunning(false);
-      onRunComplete(workflow.id);
-    }, 1500);
-  }
+  const currentRun = runs.find((r) => r.status === "running");
+  const isRunning = !!currentRun;
+  const lastRun = runs[0];
+  const recentRuns = runs.slice(0, 20);
 
   return (
     <Card>
@@ -115,66 +138,97 @@ function WorkflowCard({
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <Workflow className="h-4 w-4 text-purple-dark" />
+              <Workflow className="h-4 w-4 text-purple-600" />
               <h3 className="font-medium text-sm">{workflow.name}</h3>
-              <Badge
-                variant={workflow.is_active ? "default" : "outline"}
-                className="text-xs"
-              >
-                {workflow.is_active ? "Active" : "Inactive"}
+              <Badge variant={isActive ? "default" : "outline"} className="text-xs">
+                {isActive ? "Active" : "Inactive"}
               </Badge>
+              {isRunning && (
+                <Badge className="bg-blue-100 text-blue-700 text-xs gap-1">
+                  <Loader2 className="h-2.5 w-2.5 animate-spin" /> Running
+                </Badge>
+              )}
             </div>
             <p className="text-xs text-muted-foreground">{workflow.description}</p>
             <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {workflow.schedule || "Manual"}
+                <Clock className="h-3 w-3" /> {workflow.schedule}
               </span>
-              <span>{workflow.steps_count} steps</span>
+              <span>{workflow.steps.length} steps</span>
             </div>
-            {workflow.last_run_label && (
-              <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
-                <CheckCircle className="h-3 w-3" />
-                Last run: {workflow.last_run_label} &mdash; completed
-              </p>
+
+            {/* Live step progress */}
+            {isRunning && currentRun && (
+              <div className="mt-3 space-y-1.5">
+                {workflow.steps.map((step, i) => {
+                  const done = i < currentRun.steps_completed;
+                  const active = i === currentRun.steps_completed;
+                  return (
+                    <div key={step.name} className="flex items-center gap-2 text-xs">
+                      {done ? (
+                        <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                      ) : active ? (
+                        <Loader2 className="h-3.5 w-3.5 text-blue-500 animate-spin shrink-0" />
+                      ) : (
+                        <div className="h-3.5 w-3.5 rounded-full border border-muted-foreground/30 shrink-0" />
+                      )}
+                      <span className={done ? "text-green-700" : active ? "text-blue-700 font-medium" : "text-muted-foreground"}>
+                        {step.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Last run result */}
+            {!isRunning && lastRun && (
+              <div className="mt-2 flex items-center gap-1 text-xs">
+                {lastRun.status === "completed" ? (
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                ) : lastRun.status === "failed" ? (
+                  <XCircle className="h-3 w-3 text-red-500" />
+                ) : null}
+                <span className={lastRun.status === "failed" ? "text-red-600" : "text-green-600"}>
+                  Last run: {timeAgo(lastRun.started_at)} — {lastRun.status}
+                  {lastRun.status === "completed" && ` (${lastRun.steps_completed}/${lastRun.steps_total} steps)`}
+                </span>
+                {lastRun.error && (
+                  <span className="text-red-500 ml-1 truncate max-w-[300px]" title={lastRun.error}>
+                    {lastRun.error}
+                  </span>
+                )}
+              </div>
             )}
           </div>
+
           <div className="flex gap-2 shrink-0">
             <Button
               variant="outline"
               size="sm"
               className="text-xs"
-              onClick={handleRunNow}
-              disabled={running}
+              onClick={() => onRun(workflow.id)}
+              disabled={isRunning}
             >
-              {running ? (
-                <>
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Running&hellip;
-                </>
+              {isRunning ? (
+                <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Running&hellip;</>
               ) : (
-                <>
-                  <Play className="h-3 w-3 mr-1" /> Run Now
-                </>
+                <><Play className="h-3 w-3 mr-1" /> Run Now</>
               )}
             </Button>
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              title={workflow.is_active ? "Pause" : "Activate"}
-              onClick={() => onToggleActive(workflow.id)}
+              title={isActive ? "Pause" : "Activate"}
+              onClick={() => onToggle(workflow.id)}
             >
-              {workflow.is_active ? (
-                <Pause className="h-3.5 w-3.5" />
-              ) : (
-                <Zap className="h-3.5 w-3.5" />
-              )}
+              {isActive ? <Pause className="h-3.5 w-3.5" /> : <Zap className="h-3.5 w-3.5" />}
             </Button>
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              title="Configure"
               onClick={() => setShowSettings(!showSettings)}
             >
               <Settings className={`h-3.5 w-3.5 transition-transform ${showSettings ? "rotate-90" : ""}`} />
@@ -182,35 +236,33 @@ function WorkflowCard({
           </div>
         </div>
 
-        {/* Settings section */}
+        {/* Settings */}
         {showSettings && (
-          <div className="mt-3 rounded-lg border border-border bg-muted/50 p-4 space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Workflow Settings</h4>
-            <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="mt-3 rounded-lg border bg-muted/50 p-4 space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pipeline Steps</h4>
+            <div className="space-y-1">
+              {workflow.steps.map((step, i) => (
+                <div key={step.name} className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground font-mono w-4">{i + 1}.</span>
+                  <span className="font-medium">{step.label}</span>
+                  <span className="text-muted-foreground font-mono">({step.name})</span>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs pt-2 border-t">
               <div>
-                <span className="text-muted-foreground">Schedule (cron)</span>
-                <p className="font-mono font-semibold">{workflow.schedule || "Manual"}</p>
+                <span className="text-muted-foreground">Schedule</span>
+                <p className="font-semibold">{workflow.schedule}</p>
               </div>
               <div>
-                <span className="text-muted-foreground">Steps</span>
-                <p className="font-semibold">{workflow.steps_count}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Created</span>
-                <p className="font-semibold">{workflow.created_at}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Status</span>
-                <p className="font-semibold">{workflow.is_active ? "Active" : "Inactive"}</p>
+                <span className="text-muted-foreground">Total runs</span>
+                <p className="font-semibold">{runs.length}</p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Full configuration editing will be available once OpenClaw is connected.
-            </p>
           </div>
         )}
 
-        {/* Expandable run history */}
+        {/* Run History */}
         <Button
           variant="ghost"
           size="sm"
@@ -218,23 +270,20 @@ function WorkflowCard({
           onClick={() => setExpanded(!expanded)}
         >
           <ChevronRight className={`h-3 w-3 mr-1 transition-transform ${expanded ? "rotate-90" : ""}`} />
-          Last 20 Runs
+          Run History ({recentRuns.length})
         </Button>
 
         {expanded && (
-          <div className="mt-2 rounded-lg border border-border overflow-hidden">
-            {workflow.last_run_label ? (
-              <div className="p-3">
-                <div className="flex items-center gap-2 text-xs">
-                  <CheckCircle className="h-3.5 w-3.5 text-green-600" />
-                  <span className="font-medium">Manual run</span>
-                  <span className="text-muted-foreground">&mdash; {workflow.last_run_label}</span>
-                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700">completed</Badge>
-                </div>
-              </div>
-            ) : (
+          <div className="mt-2 rounded-lg border overflow-hidden">
+            {recentRuns.length === 0 ? (
               <div className="p-4 text-center text-xs text-muted-foreground">
                 No runs yet. Click &quot;Run Now&quot; to execute this workflow.
+              </div>
+            ) : (
+              <div className="divide-y">
+                {recentRuns.map((run) => (
+                  <RunRow key={run.id} run={run} stepsTotal={workflow.steps.length} />
+                ))}
               </div>
             )}
           </div>
@@ -244,47 +293,177 @@ function WorkflowCard({
   );
 }
 
+function RunRow({ run, stepsTotal }: { run: RunRecord; stepsTotal: number }) {
+  const [showOutput, setShowOutput] = useState(false);
+  const hasOutput = run.outputs && Object.keys(run.outputs).length > 0;
+
+  return (
+    <div className="p-3">
+      <div className="flex items-center gap-2 text-xs">
+        {run.status === "completed" ? (
+          <CheckCircle className="h-3.5 w-3.5 text-green-500 shrink-0" />
+        ) : run.status === "failed" ? (
+          <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+        ) : run.status === "running" ? (
+          <Loader2 className="h-3.5 w-3.5 text-blue-500 animate-spin shrink-0" />
+        ) : (
+          <RotateCcw className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        )}
+        <span className="font-medium">{timeAgo(run.started_at)}</span>
+        <Badge
+          variant="outline"
+          className={`text-[10px] ${
+            run.status === "completed" ? "bg-green-50 text-green-700 border-green-200" :
+            run.status === "failed" ? "bg-red-50 text-red-600 border-red-200" :
+            run.status === "running" ? "bg-blue-50 text-blue-600 border-blue-200" : ""
+          }`}
+        >
+          {run.status}
+        </Badge>
+        <span className="text-muted-foreground">{run.steps_completed}/{stepsTotal} steps</span>
+        {run.completed_at && (
+          <span className="text-muted-foreground ml-auto">
+            {duration(run.started_at, run.completed_at)}
+          </span>
+        )}
+        {hasOutput && (
+          <Button variant="ghost" size="sm" className="h-5 text-[10px] px-1.5 ml-auto" onClick={() => setShowOutput(!showOutput)}>
+            {showOutput ? "Hide" : "Output"}
+          </Button>
+        )}
+      </div>
+      {run.error && (
+        <p className="text-xs text-red-500 mt-1 pl-6">{run.error}</p>
+      )}
+      {showOutput && run.outputs && (
+        <pre className="text-[10px] bg-muted rounded p-2 mt-2 overflow-x-auto max-h-40">
+          {JSON.stringify(run.outputs, null, 2)}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function duration(start: string, end: string): string {
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  if (ms < 1000) return `${ms}ms`;
+  const secs = Math.round(ms / 1000);
+  if (secs < 60) return `${secs}s`;
+  return `${Math.floor(secs / 60)}m ${secs % 60}s`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PAGE
+   ═══════════════════════════════════════════════════════════════════════ */
+
 export default function WorkflowsPage() {
-  const [workflows, setWorkflows] = useState<WorkflowData[]>(() => {
-    // Restore persisted active states from localStorage
-    if (typeof window === "undefined") return INITIAL_WORKFLOWS;
+  const [runsByWorkflow, setRunsByWorkflow] = useState<Record<string, RunRecord[]>>({});
+  const [activeIds, setActiveIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [noTable, setNoTable] = useState(false);
+
+  useEffect(() => {
     try {
       const saved = localStorage.getItem("fh_workflows_state");
-      if (saved) {
-        const activeIds: string[] = JSON.parse(saved);
-        return INITIAL_WORKFLOWS.map((w) => ({
-          ...w,
-          is_active: activeIds.includes(w.id),
-        }));
-      }
+      if (saved) setActiveIds(JSON.parse(saved));
     } catch { /* ignore */ }
-    return INITIAL_WORKFLOWS;
-  });
+  }, []);
 
-  function persistWorkflowState(updated: WorkflowData[]) {
+  const fetchRuns = useCallback(async () => {
     try {
-      const activeIds = updated.filter((w) => w.is_active).map((w) => w.id);
-      localStorage.setItem("fh_workflows_state", JSON.stringify(activeIds));
-      localStorage.setItem("fh_workflows_active_count", String(activeIds.length));
-    } catch { /* ignore */ }
-  }
+      const res = await fetch("/api/admin/workflows/run?limit=20");
+      if (!res.ok) {
+        setNoTable(true);
+        setLoading(false);
+        return;
+      }
+      const data = await res.json();
+      const runs: RunRecord[] = data.runs ?? [];
 
-  function handleToggleActive(id: string) {
-    setWorkflows((prev) => {
-      const updated = prev.map((w) =>
-        w.id === id ? { ...w, is_active: !w.is_active } : w
-      );
-      persistWorkflowState(updated);
-      return updated;
-    });
-  }
+      const grouped: Record<string, RunRecord[]> = {};
+      for (const run of runs) {
+        if (!grouped[run.workflow_id]) grouped[run.workflow_id] = [];
+        grouped[run.workflow_id].push(run);
+      }
+      setRunsByWorkflow(grouped);
+      setNoTable(false);
+    } catch {
+      setNoTable(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  function handleRunComplete(id: string) {
-    setWorkflows((prev) =>
-      prev.map((w) =>
-        w.id === id ? { ...w, last_run_label: "just now" } : w
-      )
+  useEffect(() => {
+    fetchRuns();
+  }, [fetchRuns]);
+
+  // Poll while any workflow is running
+  useEffect(() => {
+    const hasRunning = Object.values(runsByWorkflow).some((runs) =>
+      runs.some((r) => r.status === "running")
     );
+    if (!hasRunning) return;
+    const interval = setInterval(fetchRuns, 2000);
+    return () => clearInterval(interval);
+  }, [runsByWorkflow, fetchRuns]);
+
+  async function handleRun(workflowId: string) {
+    // Optimistically show running state
+    setRunsByWorkflow((prev) => ({
+      ...prev,
+      [workflowId]: [
+        {
+          id: "temp-" + Date.now(),
+          workflow_id: workflowId,
+          status: "running" as const,
+          started_at: new Date().toISOString(),
+          completed_at: null,
+          steps_completed: 0,
+          steps_total: WORKFLOWS.find((w) => w.id === workflowId)?.steps.length ?? 1,
+          outputs: null,
+          error: null,
+        },
+        ...(prev[workflowId] ?? []),
+      ],
+    }));
+
+    try {
+      await fetch("/api/admin/workflows/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workflowId }),
+      });
+    } catch {
+      // Will show on refetch
+    }
+    await fetchRuns();
+  }
+
+  function handleToggle(id: string) {
+    setActiveIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      try {
+        localStorage.setItem("fh_workflows_state", JSON.stringify(next));
+        localStorage.setItem("fh_workflows_active_count", String(next.length));
+      } catch { /* ignore */ }
+      return next;
+    });
   }
 
   return (
@@ -293,46 +472,58 @@ export default function WorkflowsPage() {
         <div>
           <h1 className="font-serif text-2xl font-bold">Workflows</h1>
           <p className="text-sm text-muted-foreground">
-            OpenClaw-powered automation pipelines for content generation and market management.
+            Automated pipelines that call your real APIs — trend scanning, content generation, metric pulls.
           </p>
         </div>
-        <Badge variant="outline" className="text-xs border-amber-200 bg-amber-50 text-amber-700">
-          OpenClaw: Not Connected
+        <Badge
+          variant="outline"
+          className={`text-xs ${noTable ? "border-amber-200 bg-amber-50 text-amber-700" : "border-green-200 bg-green-50 text-green-700"}`}
+        >
+          {noTable ? "DB: Run Migration" : "Live Execution"}
         </Badge>
       </div>
 
-      {/* OpenClaw connection note */}
-      <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3 flex items-start gap-3">
-        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm font-semibold text-amber-800">Workflows run in simulation mode</p>
-          <p className="text-xs text-amber-700 mt-0.5">
-            Until OpenClaw is connected, &quot;Run Now&quot; simulates execution locally. Activate workflows below to mark your setup complete —
-            they will execute automatically once OpenClaw is connected.
-          </p>
+      {noTable && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3 flex items-start gap-3">
+          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800">Run the workflow_runs migration</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Workflows execute real API calls but need the <code className="bg-amber-100 px-1 rounded">workflow_runs</code> table to store history.
+              Run <code className="bg-amber-100 px-1 rounded">004_workflow_runs.sql</code> in Supabase SQL Editor.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       <HowItWorks
         steps={[
-          "Each workflow is an automated pipeline that runs on a cron schedule. Toggle workflows on/off with the lightning bolt icon, or click \"Run Now\" to execute immediately.",
-          "Market of the Day (8 AM daily): Scans trends, proposes markets, generates drafts for all platforms, runs compliance checks, and schedules or flags for review.",
-          "Weekly Digest (Mon 7 AM): Pulls analytics, selects top markets, drafts an email, and queues for review.",
-          "Trend Scan (6 AM daily): Scans X, Reddit, Google Trends, and RSS feeds for emerging topics in women's health and femtech.",
-          "Click \"Last 20 Runs\" on any workflow to see execution history, success/failure status, and duration.",
+          "Click \"Run Now\" to execute a workflow. Each step calls real ForecastHer APIs — trends, Claude AI generation, analytics, X post metrics.",
+          "Market of the Day: Scans trends → generates market + 4-platform scripts (X, IG, TikTok, LinkedIn) with UTMs → pulls metrics.",
+          "Weekly Digest: Pulls week's analytics → generates email digest draft via Claude AI.",
+          "Engagement Loop: Pulls X post metrics → identifies top performers → generates follow-up thread ideas.",
+          "Run history persists in the database. Click \"Run History\" on any workflow to see past results with full output.",
         ]}
       />
 
-      <div className="space-y-4">
-        {workflows.map((w) => (
-          <WorkflowCard
-            key={w.id}
-            workflow={w}
-            onToggleActive={handleToggleActive}
-            onRunComplete={handleRunComplete}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {WORKFLOWS.map((w) => (
+            <WorkflowCard
+              key={w.id}
+              workflow={w}
+              runs={runsByWorkflow[w.id] ?? []}
+              onRun={handleRun}
+              isActive={activeIds.includes(w.id)}
+              onToggle={handleToggle}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
