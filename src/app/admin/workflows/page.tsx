@@ -17,7 +17,10 @@ import {
   Loader2,
   AlertTriangle,
   RotateCcw,
+  ExternalLink,
+  Eye,
 } from "lucide-react";
+import Link from "next/link";
 import { HowItWorks } from "@/components/how-it-works";
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -30,6 +33,7 @@ interface WorkflowDef {
   description: string;
   schedule: string;
   steps: { name: string; label: string }[];
+  destination: { label: string; href: string };
 }
 
 interface RunRecord {
@@ -59,6 +63,7 @@ const WORKFLOWS: WorkflowDef[] = [
       { name: "generate_pack", label: "Generate market + scripts via Claude" },
       { name: "fetch_metrics", label: "Pull current metrics" },
     ],
+    destination: { label: "Growth Ops", href: "/admin/growth-ops" },
   },
   {
     id: "weekly_digest",
@@ -70,6 +75,7 @@ const WORKFLOWS: WorkflowDef[] = [
       { name: "fetch_analytics", label: "Pull analytics summary" },
       { name: "generate_digest", label: "Generate email digest draft" },
     ],
+    destination: { label: "Analytics", href: "/admin/analytics" },
   },
   {
     id: "resolution_verifier",
@@ -81,6 +87,7 @@ const WORKFLOWS: WorkflowDef[] = [
       { name: "verify_outcomes", label: "Verify outcomes against sources" },
       { name: "generate_resolution_posts", label: "Generate resolution announcement" },
     ],
+    destination: { label: "Markets", href: "/admin/markets" },
   },
   {
     id: "trend_scan",
@@ -92,6 +99,7 @@ const WORKFLOWS: WorkflowDef[] = [
       { name: "scan_reddit", label: "Scan Reddit and Google Trends" },
       { name: "scan_rss", label: "Scan RSS feeds" },
     ],
+    destination: { label: "AI Studio", href: "/admin/ai-studio" },
   },
   {
     id: "engagement_loop",
@@ -104,6 +112,7 @@ const WORKFLOWS: WorkflowDef[] = [
       { name: "identify_top_performers", label: "Identify top performers" },
       { name: "generate_followup", label: "Generate follow-up thread idea" },
     ],
+    destination: { label: "Growth Report", href: "/admin/growth-ops/report" },
   },
 ];
 
@@ -126,6 +135,7 @@ function WorkflowCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showLastOutput, setShowLastOutput] = useState(false);
 
   const currentRun = runs.find((r) => r.status === "running");
   const isRunning = !!currentRun;
@@ -178,25 +188,63 @@ function WorkflowCard({
                     </div>
                   );
                 })}
+                <div className="pt-1 pl-5">
+                  <Link
+                    href={workflow.destination.href}
+                    className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-purple-600"
+                  >
+                    Results will appear in {workflow.destination.label}
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </div>
               </div>
             )}
 
-            {/* Last run result */}
+            {/* Last run result + quick links */}
             {!isRunning && lastRun && (
-              <div className="mt-2 flex items-center gap-1 text-xs">
-                {lastRun.status === "completed" ? (
-                  <CheckCircle className="h-3 w-3 text-green-500" />
-                ) : lastRun.status === "failed" ? (
-                  <XCircle className="h-3 w-3 text-red-500" />
-                ) : null}
-                <span className={lastRun.status === "failed" ? "text-red-600" : "text-green-600"}>
-                  Last run: {timeAgo(lastRun.started_at)} — {lastRun.status}
-                  {lastRun.status === "completed" && ` (${lastRun.steps_completed}/${lastRun.steps_total} steps)`}
-                </span>
-                {lastRun.error && (
-                  <span className="text-red-500 ml-1 truncate max-w-[300px]" title={lastRun.error}>
-                    {lastRun.error}
+              <div className="mt-2 space-y-1.5">
+                <div className="flex items-center gap-1 text-xs">
+                  {lastRun.status === "completed" ? (
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                  ) : lastRun.status === "failed" ? (
+                    <XCircle className="h-3 w-3 text-red-500" />
+                  ) : null}
+                  <span className={lastRun.status === "failed" ? "text-red-600" : "text-green-600"}>
+                    Last run: {timeAgo(lastRun.started_at)} — {lastRun.status}
+                    {lastRun.status === "completed" && ` (${lastRun.steps_completed}/${lastRun.steps_total} steps)`}
                   </span>
+                  {lastRun.error && (
+                    <span className="text-red-500 ml-1 truncate max-w-[300px]" title={lastRun.error}>
+                      {lastRun.error}
+                    </span>
+                  )}
+                </div>
+                {lastRun.status === "completed" && (
+                  <div className="flex items-center gap-2 pl-4">
+                    {lastRun.outputs && Object.keys(lastRun.outputs).length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-[11px] px-2 gap-1"
+                        onClick={() => setShowLastOutput(!showLastOutput)}
+                      >
+                        <Eye className="h-3 w-3" />
+                        {showLastOutput ? "Hide Output" : "View Output"}
+                      </Button>
+                    )}
+                    <Link
+                      href={workflow.destination.href}
+                      className="inline-flex items-center gap-1 text-[11px] text-purple-600 hover:text-purple-800 font-medium"
+                    >
+                      Go to {workflow.destination.label}
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </div>
+                )}
+                {showLastOutput && lastRun.outputs && (
+                  <pre className="text-[10px] bg-muted rounded p-2 overflow-x-auto max-h-60 ml-4">
+                    {JSON.stringify(lastRun.outputs, null, 2)}
+                  </pre>
                 )}
               </div>
             )}
