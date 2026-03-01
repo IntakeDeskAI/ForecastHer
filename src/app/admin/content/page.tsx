@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -148,6 +149,7 @@ function DraftQueue({
   dbAvailable: boolean;
   loadingDrafts: boolean;
 }) {
+  const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [platformFilter, setPlatformFilter] = useState<string>("all");
   const [quickstartRunning, setQuickstartRunning] = useState(false);
@@ -173,12 +175,14 @@ function DraftQueue({
       });
       if (res.ok) {
         await onRefresh();
+        toast("success", "Sample drafts loaded and saved to database.");
       } else {
-        // Fallback to local state if DB not available
         setDrafts(QUICKSTART_DRAFTS);
+        toast("warning", "DB not available — loaded sample drafts locally.");
       }
     } catch {
       setDrafts(QUICKSTART_DRAFTS);
+      toast("warning", "DB not available — loaded sample drafts locally.");
     } finally {
       setQuickstartRunning(false);
     }
@@ -215,6 +219,7 @@ function DraftQueue({
       )
     );
     await onRefresh();
+    toast("success", `${toApprove.length} draft(s) approved.`);
     setBulkAction(null);
   }
 
@@ -231,6 +236,7 @@ function DraftQueue({
       )
     );
     await onRefresh();
+    toast("success", `${toSchedule.length} draft(s) scheduled.`);
     setBulkAction(null);
   }
 

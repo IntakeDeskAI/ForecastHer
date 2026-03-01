@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useToast } from "@/components/ui/toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -126,6 +127,7 @@ const PHASE_COLORS: Record<string, string> = {
 };
 
 export default function GrowthOpsTodayPage() {
+  const { toast } = useToast();
   const [phases, setPhases] = useState<PhaseData[]>(INITIAL_PHASES);
   const [notes, setNotes] = useState("");
   const [blockers] = useState<Blocker[]>([
@@ -215,10 +217,12 @@ export default function GrowthOpsTodayPage() {
       const data = await res.json();
       if (!res.ok) {
         setPackError(data.error || "Generation failed.");
+        toast("error", data.error || "Pack generation failed.");
         return;
       }
       // Store and display the generated pack
       setPackData(data.pack);
+      toast("success", `Pack generated: ${data.pack?.markets?.length ?? 0} market(s), ${data.pack?.scripts?.length ?? 0} scripts.`);
       // Mark Create phase items as done since AI generated the pack
       setPhases((prev) =>
         prev.map((phase) =>
