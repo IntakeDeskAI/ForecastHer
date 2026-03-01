@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -137,10 +137,16 @@ function DraftQueue({
   drafts,
   setDrafts,
   onSwitchTab,
+  onRefresh,
+  dbAvailable,
+  loadingDrafts,
 }: {
   drafts: ContentDraft[];
   setDrafts: React.Dispatch<React.SetStateAction<ContentDraft[]>>;
   onSwitchTab: (tab: string) => void;
+  onRefresh: () => Promise<void>;
+  dbAvailable: boolean;
+  loadingDrafts: boolean;
 }) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [platformFilter, setPlatformFilter] = useState<string>("all");
@@ -157,12 +163,25 @@ function DraftQueue({
     return true;
   });
 
-  function handleQuickstart() {
+  async function handleQuickstart() {
     setQuickstartRunning(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/admin/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ drafts: QUICKSTART_DRAFTS.map(({ id, ...rest }) => rest) }),
+      });
+      if (res.ok) {
+        await onRefresh();
+      } else {
+        // Fallback to local state if DB not available
+        setDrafts(QUICKSTART_DRAFTS);
+      }
+    } catch {
       setDrafts(QUICKSTART_DRAFTS);
+    } finally {
       setQuickstartRunning(false);
-    }, 1500);
+    }
   }
 
   function passesComplianceGate(d: ContentDraft): boolean {
@@ -175,36 +194,44 @@ function DraftQueue({
     (d) => !passesComplianceGate(d) && d.status !== "approved" && d.status !== "scheduled" && d.status !== "posted"
   ).length;
 
-  function handleApproveAllLowRisk() {
+  async function handleApproveAllLowRisk() {
     setBulkAction("approving");
-    setTimeout(() => {
-      setDrafts((prev) =>
-        prev.map((d) =>
-          d.risk_level === "low" &&
-          d.status !== "approved" &&
-          d.status !== "scheduled" &&
-          d.status !== "posted" &&
-          passesComplianceGate(d)
-            ? { ...d, status: "approved" as DraftStatus }
-            : d
-        )
-      );
-      setBulkAction(null);
-    }, 800);
+    const toApprove = drafts.filter(
+      (d) =>
+        d.risk_level === "low" &&
+        d.status !== "approved" &&
+        d.status !== "scheduled" &&
+        d.status !== "posted" &&
+        passesComplianceGate(d)
+    );
+    // Update each in DB
+    await Promise.all(
+      toApprove.map((d) =>
+        fetch("/api/admin/content", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: d.id, status: "approved" }),
+        }).catch(() => {})
+      )
+    );
+    await onRefresh();
+    setBulkAction(null);
   }
 
-  function handleScheduleAll() {
+  async function handleScheduleAll() {
     setBulkAction("scheduling");
-    setTimeout(() => {
-      setDrafts((prev) =>
-        prev.map((d) =>
-          d.status === "approved"
-            ? { ...d, status: "scheduled" as DraftStatus }
-            : d
-        )
-      );
-      setBulkAction(null);
-    }, 800);
+    const toSchedule = drafts.filter((d) => d.status === "approved");
+    await Promise.all(
+      toSchedule.map((d) =>
+        fetch("/api/admin/content", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: d.id, status: "scheduled" }),
+        }).catch(() => {})
+      )
+    );
+    await onRefresh();
+    setBulkAction(null);
   }
 
   return (
@@ -1721,6 +1748,29 @@ function RiskBadge({ level }: { level: RiskLevel }) {
 export default function ContentStudioPage() {
   const [activeTab, setActiveTab] = useState("queue");
   const [drafts, setDrafts] = useState<ContentDraft[]>([]);
+  const [loadingDrafts, setLoadingDrafts] = useState(true);
+  const [dbAvailable, setDbAvailable] = useState(true);
+
+  const fetchDrafts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/content");
+      if (!res.ok) {
+        setDbAvailable(false);
+        return;
+      }
+      const data = await res.json();
+      setDrafts(data.drafts ?? []);
+      setDbAvailable(true);
+    } catch {
+      setDbAvailable(false);
+    } finally {
+      setLoadingDrafts(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDrafts();
+  }, [fetchDrafts]);
 
   return (
     <div className="space-y-6">
@@ -1750,7 +1800,7 @@ export default function ContentStudioPage() {
           <TabsTrigger value="style">Style Guide</TabsTrigger>
         </TabsList>
         <TabsContent value="queue" className="mt-4">
-          <DraftQueue drafts={drafts} setDrafts={setDrafts} onSwitchTab={setActiveTab} />
+          <DraftQueue drafts={drafts} setDrafts={setDrafts} onSwitchTab={setActiveTab} onRefresh={fetchDrafts} dbAvailable={dbAvailable} loadingDrafts={loadingDrafts} />
         </TabsContent>
         <TabsContent value="editor" className="mt-4">
           <DraftEditor />
