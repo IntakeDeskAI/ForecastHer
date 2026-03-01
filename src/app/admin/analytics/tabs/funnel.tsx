@@ -46,64 +46,66 @@ export function FunnelTab({ data }: { data: AnalyticsData }) {
         Three-step funnel: Visitors → CTA Clicks → Signups. Identify the biggest drop-off and fix it.
       </p>
 
-      {/* Funnel visualization */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Conversion Funnel ({data.range})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-1">
-            {steps.map((step, i) => {
-              const widthPct = hasData && visitors > 0 ? Math.max(5, (step.value / visitors) * 100) : (i === 0 ? 100 : i === 1 ? 60 : 20);
-              const isLastStep = i === steps.length - 1;
+      {/* Funnel visualization — only render when real data exists */}
+      {hasData && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Conversion Funnel ({data.range})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-1">
+              {steps.map((step, i) => {
+                const widthPct = Math.max(5, (step.value / visitors) * 100);
+                const isLastStep = i === steps.length - 1;
 
-              return (
-                <div key={step.label}>
-                  {/* Step bar */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-40 shrink-0 text-right">
-                      <span className="text-sm font-medium">{step.label}</span>
-                    </div>
-                    <div className="flex-1 relative">
-                      <div
-                        className="h-10 rounded-lg flex items-center px-3 transition-all"
-                        style={{
-                          width: `${widthPct}%`,
-                          background: i === 0
-                            ? "hsl(271, 91%, 65%)"
-                            : i === 1
-                              ? "hsl(271, 91%, 55%)"
-                              : "hsl(142, 71%, 45%)",
-                        }}
-                      >
-                        <span className="text-white font-bold font-mono text-sm">
-                          {step.value.toLocaleString()}
-                        </span>
+                return (
+                  <div key={step.label}>
+                    {/* Step bar */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-40 shrink-0 text-right">
+                        <span className="text-sm font-medium">{step.label}</span>
+                      </div>
+                      <div className="flex-1 relative">
+                        <div
+                          className="h-10 rounded-lg flex items-center px-3 transition-all"
+                          style={{
+                            width: `${widthPct}%`,
+                            background: i === 0
+                              ? "hsl(271, 91%, 65%)"
+                              : i === 1
+                                ? "hsl(271, 91%, 55%)"
+                                : "hsl(142, 71%, 45%)",
+                          }}
+                        >
+                          <span className="text-white font-bold font-mono text-sm">
+                            {step.value.toLocaleString()}
+                          </span>
+                        </div>
                       </div>
                     </div>
+
+                    {/* Drop-off arrow */}
+                    {!isLastStep && (
+                      <div className="flex items-center gap-3 py-1">
+                        <div className="w-40 shrink-0" />
+                        <div className="flex items-center gap-2 text-xs pl-2">
+                          <ArrowDown className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-muted-foreground">
+                            {step.conversionToNext?.toFixed(1)}% convert
+                          </span>
+                          <span className="text-red-500 font-medium">
+                            {step.dropOff?.toFixed(1)}% drop-off
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-
-                  {/* Drop-off arrow */}
-                  {!isLastStep && (
-                    <div className="flex items-center gap-3 py-1">
-                      <div className="w-40 shrink-0" />
-                      <div className="flex items-center gap-2 text-xs pl-2">
-                        <ArrowDown className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-muted-foreground">
-                          {step.conversionToNext?.toFixed(1)}% convert
-                        </span>
-                        <span className="text-red-500 font-medium">
-                          {step.dropOff?.toFixed(1)}% drop-off
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Fix-it recommendations */}
       {hasData && (
@@ -153,8 +155,12 @@ export function FunnelTab({ data }: { data: AnalyticsData }) {
         <Card>
           <CardContent className="py-8 text-center">
             <ArrowDown className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
-            <p className="text-sm text-muted-foreground">
-              Funnel data will appear once GA4 ingestion runs and populates the analytics tables.
+            <h3 className="font-semibold text-base">No funnel data yet</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              The conversion funnel will populate once GA4 analytics ingestion is running and site traffic is being tracked.
+            </p>
+            <p className="text-xs text-muted-foreground/60 mt-2">
+              Steps: Connect GA4 → Run analytics import → Traffic data flows in automatically.
             </p>
           </CardContent>
         </Card>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useToast } from "@/components/ui/toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -420,6 +421,7 @@ function duration(start: string, end: string): string {
    ═══════════════════════════════════════════════════════════════════════ */
 
 export default function WorkflowsPage() {
+  const { toast } = useToast();
   const [runsByWorkflow, setRunsByWorkflow] = useState<Record<string, RunRecord[]>>({});
   const [activeIds, setActiveIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -492,13 +494,19 @@ export default function WorkflowsPage() {
     }));
 
     try {
-      await fetch("/api/admin/workflows/run", {
+      const res = await fetch("/api/admin/workflows/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ workflowId }),
       });
+      const data = await res.json();
+      if (data.status === "completed") {
+        toast("success", `${WORKFLOWS.find((w) => w.id === workflowId)?.name ?? workflowId} completed.`);
+      } else if (data.status === "failed") {
+        toast("error", data.error ?? "Workflow failed.");
+      }
     } catch {
-      // Will show on refetch
+      toast("error", "Network error running workflow.");
     }
     await fetchRuns();
   }

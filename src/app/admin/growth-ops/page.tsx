@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useToast } from "@/components/ui/toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -126,6 +127,7 @@ const PHASE_COLORS: Record<string, string> = {
 };
 
 export default function GrowthOpsTodayPage() {
+  const { toast } = useToast();
   const [phases, setPhases] = useState<PhaseData[]>(INITIAL_PHASES);
   const [notes, setNotes] = useState("");
   const [blockers] = useState<Blocker[]>([
@@ -168,9 +170,40 @@ export default function GrowthOpsTodayPage() {
   const [generatingPack, setGeneratingPack] = useState(false);
   const [packError, setPackError] = useState("");
   const [packGenerated, setPackGenerated] = useState(false);
+  const [packData, setPackData] = useState<{
+    markets?: { question: string; category: string; resolvesBy: string; resolutionCriteria: string }[];
+    scripts?: { platform: string; marketIndex: number; content: string }[];
+    utms?: { source: string; medium: string; campaign: string; content: string; fullUrl: string }[];
+  } | null>(null);
+  const [expandedScript, setExpandedScript] = useState<number | null>(null);
 
   // Targets (will come from day_plan)
   const targets = { posts: 4, comments: 30, dms: 10, signups: 25 };
+
+  // Load latest pack from today's workflow run on mount
+  useEffect(() => {
+    async function loadLatestPack() {
+      try {
+        const res = await fetch("/api/admin/workflows/run?workflowId=market_of_the_day&limit=1");
+        if (!res.ok) return;
+        const data = await res.json();
+        const run = data.runs?.[0];
+        if (run?.status === "completed" && run.outputs?.generate_pack?.pack) {
+          setPackData(run.outputs.generate_pack.pack);
+          setPackGenerated(true);
+          // Mark Create phase items as done
+          setPhases((prev) =>
+            prev.map((phase) =>
+              phase.id === "create"
+                ? { ...phase, items: phase.items.map((item) => ({ ...item, done: true })) }
+                : phase
+            )
+          );
+        }
+      } catch { /* silent */ }
+    }
+    loadLatestPack();
+  }, []);
 
   async function handleGenerateTodayPack() {
     setGeneratingPack(true);
@@ -184,8 +217,12 @@ export default function GrowthOpsTodayPage() {
       const data = await res.json();
       if (!res.ok) {
         setPackError(data.error || "Generation failed.");
+        toast("error", data.error || "Pack generation failed.");
         return;
       }
+      // Store and display the generated pack
+      setPackData(data.pack);
+      toast("success", `Pack generated: ${data.pack?.markets?.length ?? 0} market(s), ${data.pack?.scripts?.length ?? 0} scripts.`);
       // Mark Create phase items as done since AI generated the pack
       setPhases((prev) =>
         prev.map((phase) =>
@@ -404,6 +441,106 @@ export default function GrowthOpsTodayPage() {
             </Card>
           ))}
         </div>
+
+        {/* Today's Generated Pack */}
+        {packData && (packData.markets?.length ?? 0) > 0 && (
+          <Card className="border-green-200 bg-green-50/30 dark:border-green-800 dark:bg-green-950/10">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-serif flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" /> Today&apos;s Pack
+                </CardTitle>
+                <Badge variant="outline" className="border-green-200 bg-green-50 text-green-700 text-xs">
+                  {packData.markets?.length ?? 0} market{(packData.markets?.length ?? 0) !== 1 ? "s" : ""} &middot; {packData.scripts?.length ?? 0} scripts
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Markets */}
+              {packData.markets?.map((market, i) => (
+                <div key={i} className="rounded-lg border bg-background p-3 space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="text-sm font-medium">{market.question}</h4>
+                    <Badge variant="secondary" className="text-[10px] shrink-0">{market.category}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{market.resolutionCriteria}</p>
+                  <p className="text-[10px] text-muted-foreground">Resolves by {market.resolvesBy}</p>
+
+                  {/* Scripts for this market */}
+                  <div className="flex gap-1.5 pt-1">
+                    {packData.scripts
+                      ?.filter((s) => s.marketIndex === i)
+                      .map((script, si) => {
+                        const globalIdx = i * 4 + si;
+                        const isExpanded = expandedScript === globalIdx;
+                        return (
+                          <div key={si} className="flex-1 min-w-0">
+                            <Button
+                              variant={isExpanded ? "default" : "outline"}
+                              size="sm"
+                              className="w-full text-[10px] h-6 capitalize"
+                              onClick={() => setExpandedScript(isExpanded ? null : globalIdx)}
+                            >
+                              {script.platform}
+                            </Button>
+                          </div>
+                        );
+                      })}
+                  </div>
+
+                  {/* Expanded script content */}
+                  {packData.scripts
+                    ?.filter((s) => s.marketIndex === i)
+                    .map((script, si) => {
+                      const globalIdx = i * 4 + si;
+                      if (expandedScript !== globalIdx) return null;
+                      return (
+                        <div key={si} className="rounded border bg-muted/50 p-3 mt-1">
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-medium uppercase text-muted-foreground">{script.platform}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 text-[10px] px-1.5"
+                              onClick={() => {
+                                navigator.clipboard.writeText(script.content);
+                              }}
+                            >
+                              Copy
+                            </Button>
+                          </div>
+                          <p className="text-xs whitespace-pre-wrap">{script.content}</p>
+                        </div>
+                      );
+                    })}
+                </div>
+              ))}
+
+              {/* UTM Links */}
+              {(packData.utms?.length ?? 0) > 0 && (
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-medium text-muted-foreground">UTM Links</h4>
+                  <div className="space-y-1">
+                    {packData.utms?.map((utm, i) => (
+                      <div key={i} className="flex items-center gap-2 text-[11px]">
+                        <Badge variant="outline" className="text-[9px] capitalize shrink-0">{utm.source}</Badge>
+                        <code className="text-[10px] text-muted-foreground truncate flex-1">{utm.fullUrl}</code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 text-[10px] px-1.5 shrink-0"
+                          onClick={() => navigator.clipboard.writeText(utm.fullUrl)}
+                        >
+                          Copy
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Live Scoreboard */}
         <Card>

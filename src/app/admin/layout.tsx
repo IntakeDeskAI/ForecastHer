@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { ToastProvider } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -78,6 +79,7 @@ export default function AdminLayout({
   }
 
   return (
+    <ToastProvider>
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Mobile overlay */}
       {mobileOpen && (
@@ -211,5 +213,6 @@ export default function AdminLayout({
         </main>
       </div>
     </div>
+    </ToastProvider>
   );
 }

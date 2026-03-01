@@ -200,7 +200,7 @@ function CalendarView() {
 }
 
 function QueueView() {
-  const [posts, setPosts] = useState(SAMPLE_QUEUE);
+  const [posts, setPosts] = useState<QueueEntry[]>([]);
   const [filter, setFilter] = useState<string>("all");
   const [expandedPreview, setExpandedPreview] = useState<string | null>(null);
   const [retryingAll, setRetryingAll] = useState(false);
@@ -338,11 +338,9 @@ function QueueView() {
                   <Sparkles className="h-3 w-3" /> Go to Content Studio
                 </Button>
               </Link>
-              <Link href="/ai-studio">
-                <Button size="sm" variant="outline" className="text-xs gap-1">
-                  Run Quickstart
-                </Button>
-              </Link>
+              <Button size="sm" variant="outline" className="text-xs gap-1" onClick={() => setPosts(SAMPLE_QUEUE)}>
+                Load Demo Data
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -567,14 +565,14 @@ export default function SchedulerPage() {
         </p>
       </div>
 
-      {/* Demo data banner */}
-      <div className="rounded-lg border-2 border-amber-400 bg-amber-50 p-4 flex items-start gap-3">
-        <CalendarIcon className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+      {/* Info banner */}
+      <div className="rounded-lg border border-purple-200 bg-purple-50/50 p-3 flex items-start gap-3">
+        <CalendarIcon className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-semibold text-amber-800">Demo Data</p>
-          <p className="text-xs text-amber-700 mt-0.5">
-            Queue entries below are sample data showing how the scheduler works.
-            Real posts will appear here once you approve drafts in Content Studio and schedule them.
+          <p className="text-sm font-semibold text-purple-800">How it works</p>
+          <p className="text-xs text-purple-700 mt-0.5">
+            Posts appear here once you approve drafts in Content Studio and schedule them.
+            You can also click &quot;Load Demo Data&quot; in the queue to see how it looks with sample posts.
           </p>
         </div>
       </div>
