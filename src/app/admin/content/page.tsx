@@ -330,7 +330,11 @@ function DraftQueue({
         </div>
       )}
 
-      {filtered.length === 0 && drafts.length === 0 ? (
+      {loadingDrafts ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : filtered.length === 0 && drafts.length === 0 ? (
         <Card className="border-dashed border-2">
           <CardContent className="py-10">
             <div className="text-center mb-6">
